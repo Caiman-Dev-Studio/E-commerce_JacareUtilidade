@@ -4,7 +4,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let produtosLocais = [];
 let bannersLocais = [];
-let carrinho = []; 
+let carrinho = [];
+let valorFreteAtual = 0; 
 let bannerAtual = 0;
 let modalQuantidadeAtual = 1;
 let produtoAtualModal = null;
@@ -28,6 +29,35 @@ function renderizarBanner(i) {
         img.style.opacity = 0;
         setTimeout(() => { img.src = bannersLocais[i]; img.style.opacity = 1; }, 500);
     }
+}
+
+async function calcularFrete() {
+    const endereco = document.getElementById('input-endereco').value.trim();
+    if (!endereco) return;
+
+    const response = await fetch('/api/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: endereco })
+    });
+
+    const data = await response.json();
+
+    if (data.shipping) {
+        valorFreteAtual = data.shipping;
+        atualizarTotalComFrete();
+        alert(`🛵 Frete: R$ ${data.shipping.toFixed(2)} | ETA: ${data.eta}`);
+    }
+}
+
+function atualizarTotalComFrete() {
+    let total = 0;
+    carrinho.forEach(item => total += item.preco);
+
+    const totalFinal = total + valorFreteAtual;
+
+    document.getElementById('resumo-total-geral').innerText =
+        `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
 }
 
 async function carregarProdutos() {
