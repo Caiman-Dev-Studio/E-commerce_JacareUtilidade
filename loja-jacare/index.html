@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jacaré Utilidades | É um Sucesso!</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script>
+        function handleImageError(img) {
+            img.src = 'https://placehold.co/800x800/008037/FFFFFF/png?text=Jacare+Utilidades';
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="site-wrapper">
+    <header class="main-header">
+        <div class="container header-layout">
+            <div class="logo">
+                <h1>🐊 Jacaré <span>Utilidades</span></h1>
+            </div>
+            <nav class="search-area">
+                <input type="text" id="input-busca" placeholder="O que você procura hoje?" onkeyup="if(event.key==='Enter') buscarProdutos()">
+                <button type="button" onclick="buscarProdutos()">Buscar</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="cart-fab" onclick="abrirCarrinho()" title="Ver Carrinho">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count">0</span>
+    </div>
+
+    <main class="main-content">
+        <section class="hero">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <span class="badge">🔥 Oferta do Dia</span>
+                    <h1>Tem de tudo!<br><span>É um sucesso!</span></h1>
+                    <p>Variedade e preço baixo em Sete Lagoas e região.</p>
+                    <a href="#secao-promocoes" class="cta-button">Ver Promoções</a>
+                </div>
+                <div class="hero-banner">
+                    <img id="banner-img" src="" onerror="handleImageError(this)" alt="Banner Destaque">
+                </div>
+            </div>
+        </section>
+
+        <section class="categories">
+            <div class="container">
+                <div class="category-grid">
+                    <div class="category-item" onclick="filtrarPorCategoria('Tecnologia')">
+                        <div class="category-icon">📱</div><span>Tecnologia</span>
+                    </div>
+                    <div class="category-item" onclick="filtrarPorCategoria('Escolar')">
+                        <div class="category-icon">📚</div><span>Escolar</span>
+                    </div>
+                    <div class="category-item" onclick="filtrarPorCategoria('Brinquedos')">
+                        <div class="category-icon">🧸</div><span>Brinquedos</span>
+                    </div>
+                    <div class="category-item" onclick="filtrarPorCategoria('Utilidades')">
+                        <div class="category-icon">🛠️</div><span>Utilidades</span>
+                    </div>
+                    <div class="category-item" onclick="carregarProdutos()">
+                        <div class="category-icon">✨</div><span>Tudo</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="container" id="container-busca-voltar" style="display:none; padding: 20px 0;">
+            <button onclick="limparBusca()" class="cta-button" style="margin:0; background: var(--green); color: white; border:none; cursor:pointer;">← Voltar ao Início</button>
+        </div>
+
+        <div class="container" id="secao-promocoes">
+            <h2 class="section-title">🔥 Promoções Bombando</h2>
+            <section class="product-grid" id="grid-promocoes">
+                <div class="loading-msg"><p>🐊 Carregando ofertas...</p></div>
+            </section>
+        </div>
+
+        <div class="container" id="secao-geral" style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 30px;">
+            <h2 class="section-title">🐊 Tudo da Jacaré</h2>
+            <section class="product-grid" id="grid-produtos-geral">
+                <div class="loading-msg"><p>🐊 Organizando a vitrine...</p></div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal-produto" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal()">&times;</span>
+            <div class="modal-body">
+                <h2 id="modal-titulo" style="margin-bottom: 15px; font-family: 'Montserrat', sans-serif;"></h2>
+                <div id="modal-area-venda">
+                    <div class="image-container-branded">
+                        <div id="modal-galeria"></div>
+                        <div class="image-watermark">🐊 Jacaré Utilidades</div>
+                    </div>
+                    <div class="modal-info">
+                        <div style="display:flex; justify-content:flex-end; margin-top: 10px;">
+                            <button onclick="compartilharProduto()" class="btn-share" title="Compartilhar">🔗 Compartilhar</button>
+                        </div>
+                        <div id="modal-descricao" class="modal-desc-text"></div>
+                        <div id="modal-quantidade-container" class="modal-qtd-selector">
+                            <button class="btn-qtd-modal" onclick="ajustarQtdModal(-1)">-</button>
+                            <span id="modal-qtd-numero">1</span>
+                            <button class="btn-qtd-modal" onclick="ajustarQtdModal(1)">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="modal-area-escolha" style="display:none; text-align:center;">
+                    <div style="font-size: 3.5rem; margin-bottom: 10px;">✅</div>
+                    <h2 style="color:var(--green);">Adicionado!</h2>
+                    <p style="margin-bottom: 25px;">O que deseja fazer agora?</p>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <button class="add-btn" onclick="fecharModal()" style="background:#f1f1f1; color:#333;">🛒 Continuar Comprando</button>
+                        <button class="add-btn" onclick="abrirCarrinho()">🚀 Fechar o Pedido</button>
+                    </div>
+                </div>
+                <div id="modal-area-checkout" style="display:none;">
+                    <div id="modal-lista-carrinho" class="cart-items-list"></div>
+                    <div class="checkout-box">
+                        <label>FORMA DE PAGAMENTO:</label>
+                        <select id="metodo-pagamento" class="form-select">
+                            <option value="Pix">📱 Pix</option>
+                            <option value="Cartão">💳 Cartão</option>
+                            <option value="Dinheiro">💵 Dinheiro</option>
+                        </select>
+                        <label>ENTREGA OU RETIRADA:</label>
+                        <select id="metodo-entrega" class="form-select" onchange="toggleEndereco()">
+                            <option value="Retirada">🏪 Retirar na Loja</option>
+                            <option value="Entrega">🛵 Entrega em Sete Lagoas</option>
+                        </select>
+                        <div id="aviso-horario" style="margin-top: 10px; color: var(--green); font-size: 0.85rem; font-weight: bold;">
+                            🕒 Retirada permitida das 10:00 às 16:30 do mesmo dia.
+                        </div>
+                        <div id="campo-endereco" style="display:none; margin-top: 10px;">
+                            <textarea id="input-endereco" class="form-select" placeholder="Endereço completo (Rua, Nº, Bairro)"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div id="modal-footer-preco" class="checkout-total">
+                    <span id="label-total">Total</span>: <span id="resumo-total-geral">R$ 0,00</span>
+                </div>
+                <button id="modal-btn-acao" class="add-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer-premium">
+        <div class="container">
+            <h3>🐊 Jacaré Utilidades</h3>
+            <p>Variedade e agilidade para Sete Lagoas e região.</p>
+            <div style="margin-top:20px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap;">
+                <a href="https://wa.me/31998997812" target="_blank" class="social-btn">WhatsApp</a>
+                <a href="https://www.instagram.com/jacareutilidades1" target="_blank" class="social-btn" style="background:#E1306C;">Instagram</a>
+            </div>
+            <div class="dev-credit"> Desenvolvido por
+                <img src="logo-caiman.png" alt="Caiman Dev Studio">
+                <strong>Caiman Dev Studio</strong>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Jacaré Utilidades - É um Sucesso!</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+</html>
