@@ -292,7 +292,7 @@ async function finalizarPedido() {
     .from('pedidos')
     .insert([
         {
-            code: codPedido,
+            codigo: codPedido,
             itens: itensAgrupados,
             endereco: entrega === 'Entrega' ? endereco : null,
             frete: valorFreteAtual,
