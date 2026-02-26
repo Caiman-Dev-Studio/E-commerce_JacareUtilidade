@@ -285,20 +285,22 @@ async function finalizarPedido() {
     });
 
     const totalFinal = totalGeral + valorFreteAtual;
+    const tokenConfirmacao = crypto.randomUUID();
 
     // 🔥 SALVAR NO SUPABASE
     const { error } = await supabaseClient
-        .from('pedidos')
-        .insert([
-            {
-                code: codPedido,
-                itens: itensAgrupados,
-                endereco: entrega === 'Entrega' ? endereco : null,
-                frete: valorFreteAtual,
-                total: totalFinal,
-                status: 'PENDENTE'
-            }
-        ]);
+    .from('pedidos')
+    .insert([
+        {
+            code: codPedido,
+            itens: itensAgrupados,
+            endereco: entrega === 'Entrega' ? endereco : null,
+            frete: valorFreteAtual,
+            total: totalFinal,
+            status: 'PENDENTE',
+            token_confirmacao: tokenConfirmacao
+        }
+    ]);
 
     if (error) {
         console.error("Erro ao salvar pedido:", error);
@@ -325,6 +327,10 @@ async function finalizarPedido() {
 
     msg += `%0A%0A É um sucesso!`;
 
+    const linkConfirmacao = `https://jacare-utilidades.vercel.app/confirmar.html?codigo=${codPedido}&token=${tokenConfirmacao}`;
+    
+    msg += `%0A%0A🔐 Confirmar pedido:%0A${linkConfirmacao}`;
+    
     window.open(`https://wa.me/31998997812?text=${msg}`, '_blank');
 }
 

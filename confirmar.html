@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Confirmar Pedido</title>
+</head>
+<body style="font-family: Arial; text-align:center; padding:40px;">
+  <h2>Confirmando pedido...</h2>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const codigo = params.get("codigo");
+    const token = params.get("token");
+
+    fetch("/api/confirmar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codigo, token })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.sucesso) {
+        document.body.innerHTML = "<h2>✅ Pedido confirmado com sucesso!</h2>";
+      } else {
+        document.body.innerHTML = "<h2>❌ Erro ao confirmar pedido.</h2>";
+      }
+    });
+  </script>
+</body>
+</html>
