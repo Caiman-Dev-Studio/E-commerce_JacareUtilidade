@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const { data, error } = await supabase
     .from('pedidos')
     .update({ status: 'CONFIRMADO' })
-    .eq('codigo', codigo)
+    .eq('code', codigo)
     .eq('token_confirmacao', token)
     .select();
 
