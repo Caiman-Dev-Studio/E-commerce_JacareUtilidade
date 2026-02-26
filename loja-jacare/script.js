@@ -258,12 +258,18 @@ function removerDoCarrinho(index) {
     else abrirCarrinho();
 }
 
-function finalizarPedido() {
+async function finalizarPedido() {
     const pag = document.getElementById('metodo-pagamento').value;
     const entrega = document.getElementById('metodo-entrega').value;
     const endereco = document.getElementById('input-endereco').value;
     const codPedido = 'JAC-' + Math.floor(1000 + Math.random() * 9000);
 
+    if (entrega === 'Entrega' && !endereco) {
+        alert("Informe o endereço para entrega.");
+        return;
+    }
+
+    // Agrupar itens
     const itensAgrupados = {};
     carrinho.forEach(item => {
         if (!itensAgrupados[item.id]) {
@@ -274,19 +280,51 @@ function finalizarPedido() {
     });
 
     let totalGeral = 0;
+    Object.values(itensAgrupados).forEach(i => {
+        totalGeral += i.preco * i.qtd;
+    });
+
+    const totalFinal = totalGeral + valorFreteAtual;
+
+    // 🔥 SALVAR NO SUPABASE
+    const { error } = await supabaseClient
+        .from('pedidos')
+        .insert([
+            {
+                code: codPedido,
+                itens: itensAgrupados,
+                endereco: entrega === 'Entrega' ? endereco : null,
+                frete: valorFreteAtual,
+                total: totalFinal,
+                status: 'PENDENTE'
+            }
+        ]);
+
+    if (error) {
+        console.error("Erro ao salvar pedido:", error);
+        alert("Erro ao registrar pedido. Tente novamente.");
+        return;
+    }
+
+    // 🟢 MONTAR MENSAGEM WHATSAPP
     let msg = `🐊 *PEDIDO JACARÉ UTILIDADES*%0A`;
     msg += `🆔 *CÓDIGO:* ${codPedido}%0A%0A`;
 
     Object.values(itensAgrupados).forEach(i => {
         const sub = i.preco * i.qtd;
-        totalGeral += sub;
         let txtPresente = i.presenteQtd > 0 ? ` _(🎁 ${i.presenteQtd} para presente)_` : '';
         msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}%0A`;
     });
 
-    msg += `%0A*TOTAL:* R$ ${totalGeral.toFixed(2).replace('.', ',')}%0A*PAGAMENTO:* ${pag}%0A*TIPO:* ${entrega}`;
-    if (entrega === 'Entrega') msg += `%0A*ENDEREÇO:* ${endereco.toUpperCase()}`;
+    msg += `%0A*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}%0A`;
+    msg += `*PAGAMENTO:* ${pag}%0A*TIPO:* ${entrega}`;
+
+    if (entrega === 'Entrega') {
+        msg += `%0A*ENDEREÇO:* ${endereco.toUpperCase()}`;
+    }
+
     msg += `%0A%0A É um sucesso!`;
+
     window.open(`https://wa.me/31998997812?text=${msg}`, '_blank');
 }
 
