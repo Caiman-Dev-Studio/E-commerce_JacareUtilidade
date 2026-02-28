@@ -327,6 +327,7 @@ async function finalizarPedido() {
 
     msg += `%0A%0A É um sucesso!`;
 
+    // 🔧 CORREÇÃO: Link com token incluso
     const linkConfirmacao = `https://jacare-utilidades.vercel.app/confirmar.html?codigo=${codPedido}&token=${tokenConfirmacao}`;
     
     msg += `%0A%0A🔐 Confirmar pedido:%0A${linkConfirmacao}`;
