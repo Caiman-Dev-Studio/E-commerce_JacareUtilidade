@@ -286,6 +286,10 @@ async function finalizarPedido() {
 
     const totalFinal = totalGeral + valorFreteAtual;
     const tokenConfirmacao = crypto.randomUUID();
+    
+    // 🐊 DEBUG 1: Verificar se o token foi gerado
+    console.log("🔍 TOKEN GERADO:", tokenConfirmacao);
+    console.log("🔍 TIPO DO TOKEN:", typeof tokenConfirmacao);
 
     // 🔥 SALVAR NO SUPABASE
     const { error } = await supabaseClient
@@ -327,10 +331,16 @@ async function finalizarPedido() {
 
     msg += `%0A%0A É um sucesso!`;
 
-    // 🔧 CORREÇÃO: Link com token incluso
+    // Link com token
     const linkConfirmacao = `https://jacare-utilidades.vercel.app/confirmar.html?codigo=${codPedido}&token=${tokenConfirmacao}`;
     
+    // 🐊 DEBUG 2: Verificar o link gerado
+    console.log("🔍 LINK GERADO:", linkConfirmacao);
+    
     msg += `%0A%0A🔐 Confirmar pedido:%0A${linkConfirmacao}`;
+    
+    // 🐊 DEBUG 3: Verificar a mensagem completa
+    console.log("🔍 MENSAGEM COMPLETA:", msg);
     
     window.open(`https://wa.me/31998997812?text=${msg}`, '_blank');
 }
