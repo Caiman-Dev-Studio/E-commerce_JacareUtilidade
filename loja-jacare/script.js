@@ -287,9 +287,7 @@ async function finalizarPedido() {
     const totalFinal = totalGeral + valorFreteAtual;
     const tokenConfirmacao = crypto.randomUUID();
     
-    // 🐊 DEBUG 1: Verificar se o token foi gerado
     console.log("🔍 TOKEN GERADO:", tokenConfirmacao);
-    console.log("🔍 TIPO DO TOKEN:", typeof tokenConfirmacao);
 
     // 🔥 SALVAR NO SUPABASE
     const { error } = await supabaseClient
@@ -312,38 +310,37 @@ async function finalizarPedido() {
         return;
     }
 
-    // 🟢 MONTAR MENSAGEM WHATSAPP
-    let msg = `🐊 *PEDIDO JACARÉ UTILIDADES*%0A`;
-    msg += `🆔 *CÓDIGO:* ${codPedido}%0A%0A`;
+    // 🟢 MONTAR MENSAGEM WHATSAPP - TUDO EM TEXTO PLANO PRIMEIRO
+    let msg = "";
+    msg += "🐊 *PEDIDO JACARÉ UTILIDADES*\n";
+    msg += "🆔 *CÓDIGO:* " + codPedido + "\n\n";
 
     Object.values(itensAgrupados).forEach(i => {
         const sub = i.preco * i.qtd;
         let txtPresente = i.presenteQtd > 0 ? ` _(🎁 ${i.presenteQtd} para presente)_` : '';
-        msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}%0A`;
+        msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
     });
 
-    msg += `%0A*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}%0A`;
-    msg += `*PAGAMENTO:* ${pag}%0A*TIPO:* ${entrega}`;
+    msg += `\n*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}\n`;
+    msg += `*PAGAMENTO:* ${pag}\n`;
+    msg += `*TIPO:* ${entrega}\n`;
 
     if (entrega === 'Entrega') {
-        msg += `%0A*ENDEREÇO:* ${endereco.toUpperCase()}`;
+        msg += `*ENDEREÇO:* ${endereco.toUpperCase()}\n`;
     }
 
-    msg += `%0A%0A É um sucesso!`;
+    msg += `\n É um sucesso!\n\n`;
+    msg += `🔐 Confirmar pedido:\n`;
+    msg += `https://jacare-utilidades.vercel.app/confirmar.html?codigo=${codPedido}&token=${tokenConfirmacao}`;
 
-    // Link com token
-    const linkConfirmacao = `https://jacare-utilidades.vercel.app/confirmar.html?codigo=${codPedido}&token=${tokenConfirmacao}`;
+    console.log("🔍 MENSAGEM (texto plano):", msg);
+
+    // 🔥 CODIFICAR TUDO DE UMA VEZ PARA URL
+    const msgCodificada = encodeURIComponent(msg);
     
-    // 🐊 DEBUG 2: Verificar o link gerado
-    console.log("🔍 LINK GERADO:", linkConfirmacao);
+    console.log("🔍 MENSAGEM CODIFICADA:", msgCodificada);
     
-    // Forçar as quebras de linha de forma segura
-    msg += '\n\n🔐 Confirmar pedido:\n' + linkConfirmacao;
-    
-    // 🐊 DEBUG 3: Verificar a mensagem completa
-    console.log("🔍 MENSAGEM COMPLETA:", msg);
-    
-    window.open(`https://wa.me/31998997812?text=${msg}`, '_blank');
+    window.open(`https://wa.me/31998997812?text=${msgCodificada}`, '_blank');
 }
 
 function fecharModal() { document.getElementById('modal-produto').style.display = 'none'; }
