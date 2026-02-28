@@ -337,7 +337,8 @@ async function finalizarPedido() {
     // 🐊 DEBUG 2: Verificar o link gerado
     console.log("🔍 LINK GERADO:", linkConfirmacao);
     
-    msg += `%0A%0A🔐 Confirmar pedido:%0A${linkConfirmacao}`;
+    // Forçar as quebras de linha de forma segura
+    msg += '\n\n🔐 Confirmar pedido:\n' + linkConfirmacao;
     
     // 🐊 DEBUG 3: Verificar a mensagem completa
     console.log("🔍 MENSAGEM COMPLETA:", msg);
