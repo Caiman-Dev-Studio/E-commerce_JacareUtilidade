@@ -6,11 +6,18 @@
 </head>
 <body style="font-family: Arial; text-align:center; padding:40px;">
   <h2>Confirmando pedido...</h2>
+  <div id="debug" style="background:#f0f0f0; padding:20px; margin:20px; text-align:left;"></div>
+  
   <script>
+    const debug = document.getElementById('debug');
+    
     const params = new URLSearchParams(window.location.search);
     const codigo = params.get("codigo");
     const token = params.get("token");
-
+    
+    debug.innerHTML += `<p>📦 Código: ${codigo}</p>`;
+    debug.innerHTML += `<p>🔑 Token: ${token}</p>`;
+    
     fetch("/api/confirmar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -18,11 +25,15 @@
     })
     .then(res => res.json())
     .then(data => {
+      debug.innerHTML += `<p>✅ Resposta: ${JSON.stringify(data)}</p>`;
       if (data.sucesso) {
         document.body.innerHTML = "<h2>✅ Pedido confirmado com sucesso!</h2>";
       } else {
         document.body.innerHTML = "<h2>❌ Erro ao confirmar pedido.</h2>";
       }
+    })
+    .catch(err => {
+      debug.innerHTML += `<p>❌ Erro: ${err.message}</p>`;
     });
   </script>
 </body>
