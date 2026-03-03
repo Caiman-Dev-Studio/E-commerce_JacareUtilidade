@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Painel de Pedidos</title>
+
+<style>
+body{
+  font-family: Arial;
+  padding:40px;
+}
+
+.container{
+  display:flex;
+  gap:20px;
+}
+
+.coluna{
+  flex:1;
+  background:#f5f5f5;
+  padding:15px;
+  border-radius:8px;
+}
+
+.pedido{
+  background:white;
+  border:1px solid #ccc;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:5px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>Painel da Loja</h1>
+
+<div class="container">
+
+<div class="coluna">
+<h2>PENDENTE</h2>
+<div id="pendente"></div>
+</div>
+
+<div class="coluna">
+<h2>PRONTO</h2>
+<div id="pronto"></div>
+</div>
+
+<div class="coluna">
+<h2>ENTREGA</h2>
+<div id="entrega"></div>
+</div>
+
+<div class="coluna">
+<h2>FINALIZADO</h2>
+<div id="finalizado"></div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+
+const supabase = window.supabase.createClient(
+  "SUA_SUPABASE_URL",
+  "SUA_SUPABASE_PUBLIC_KEY"
+)
+
+async function carregarPedidos(){
+
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('*')
+    .order('id', { ascending: false })
+
+    if(error){
+        console.error(error)
+        return
+    }
+
+  document.getElementById("pendente").innerHTML = ""
+  document.getElementById("pronto").innerHTML = ""
+  document.getElementById("entrega").innerHTML = ""
+  document.getElementById("finalizado").innerHTML = ""
+
+  data.forEach(p => {
+
+    let itensHTML = ""
+
+    if(p.itens){
+    p.itens.forEach(i => {
+
+        const sub = i.preco * i.qtd
+        let txtPresente = i.presenteQtd > 0 ? ` (🎁 ${i.presenteQtd} para presente)` : ""
+
+        itensHTML += `• (${i.qtd}x) ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}<br>`
+
+    })
+    }
+
+    let html = `
+    <div class="pedido">
+        <b>Pedido:</b> ${p.code} <br>
+        <b>Itens:</b><br>
+        ${itensHTML}<br>
+
+        <b>Total:</b> R$ ${p.total} <br>
+        <b>Endereço:</b> ${p.endereco} <br>
+    `
+
+    if(p.status === "PENDENTE"){
+      html += `<br>
+      <button onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">
+      Preparado
+      </button>`
+    }
+
+    if(p.status === "PRONTO"){
+      html += `<br>
+      <button onclick="mudarStatus('${p.code}','ENTREGA')">
+      Uber pegou
+      </button>`
+    }
+
+    if(p.status === "ENTREGA"){
+      html += `<br>
+      <button onclick="mudarStatus('${p.code}','FINALIZADO')">
+      Entregue
+      </button>`
+    }
+
+    html += "</div>"
+
+    document.getElementById(p.status.toLowerCase()).innerHTML += html
+
+  })
+}
+
+async function marcarPronto(codigo, token){
+
+  const r = await fetch("/api/confirmar",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ codigo, token })
+  })
+
+  const j = await r.json()
+
+  if(!j.sucesso){
+    alert("Erro ao atualizar")
+    return
+  }
+
+  carregarPedidos()
+}
+
+async function mudarStatus(codigo, status){
+
+  const { error } = await supabase
+    .from('pedidos')
+    .update({ status: status })
+    .eq('code', codigo)
+
+  if(error){
+    alert("Erro ao atualizar")
+    return
+  }
+
+  carregarPedidos()
+}
+
+carregarPedidos()
+
+// AUTO ATUALIZAÇÃO A CADA 5 SEGUNDOS
+setInterval(carregarPedidos, 5000)
+
+</script>
+
+</body>
+</html>
