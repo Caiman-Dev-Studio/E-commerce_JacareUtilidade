@@ -70,6 +70,9 @@ const supabase = window.supabase.createClient(
   "SUA_SUPABASE_PUBLIC_KEY"
 )
 
+// 🔔 controle de pedidos anteriores
+let totalPedidosAnterior = 0
+
 async function carregarPedidos(){
 
   const { data, error } = await supabase
@@ -77,10 +80,17 @@ async function carregarPedidos(){
     .select('*')
     .order('id', { ascending: false })
 
-    if(error){
-        console.error(error)
-        return
-    }
+  if(error){
+    console.error(error)
+    return
+  }
+
+  // 🔔 detectar novo pedido
+  if(data.length > totalPedidosAnterior && totalPedidosAnterior !== 0){
+    tocarSomNovoPedido()
+  }
+
+  totalPedidosAnterior = data.length
 
   document.getElementById("pendente").innerHTML = ""
   document.getElementById("pronto").innerHTML = ""
@@ -92,24 +102,25 @@ async function carregarPedidos(){
     let itensHTML = ""
 
     if(p.itens){
-    p.itens.forEach(i => {
+      p.itens.forEach(i => {
 
         const sub = i.preco * i.qtd
         let txtPresente = i.presenteQtd > 0 ? ` (🎁 ${i.presenteQtd} para presente)` : ""
 
         itensHTML += `• (${i.qtd}x) ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}<br>`
 
-    })
+      })
     }
 
     let html = `
     <div class="pedido">
-        <b>Pedido:</b> ${p.code} <br>
-        <b>Itens:</b><br>
-        ${itensHTML}<br>
+      <b>Pedido:</b> ${p.code} <br>
 
-        <b>Total:</b> R$ ${p.total} <br>
-        <b>Endereço:</b> ${p.endereco} <br>
+      <b>Itens:</b><br>
+      ${itensHTML}<br>
+
+      <b>Total:</b> R$ ${p.total} <br>
+      <b>Endereço:</b> ${p.endereco} <br>
     `
 
     if(p.status === "PENDENTE"){
@@ -171,6 +182,16 @@ async function mudarStatus(codigo, status){
   }
 
   carregarPedidos()
+}
+
+// 🔔 função do som
+function tocarSomNovoPedido(){
+
+  const audio = new Audio(
+    "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"
+  )
+
+  audio.play()
 }
 
 carregarPedidos()
