@@ -2,105 +2,287 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel de Pedidos</title>
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  padding: 30px;
-  background: #f4f4f4;
-}
+  :root{
+    --bg: #0b0f14;
+    --panel: rgba(255,255,255,0.06);
+    --panel-2: rgba(255,255,255,0.09);
+    --text: rgba(255,255,255,0.92);
+    --muted: rgba(255,255,255,0.65);
+    --border: rgba(255,255,255,0.10);
+    --shadow: 0 10px 25px rgba(0,0,0,0.35);
+    --radius: 16px;
+  }
 
-h1{
-  margin-bottom: 24px;
-}
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: Inter, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 20% 0%, rgba(0,128,55,0.25), transparent 60%),
+                radial-gradient(900px 500px at 90% 10%, rgba(0,180,255,0.18), transparent 55%),
+                var(--bg);
+    color: var(--text);
+    padding: 26px;
+  }
 
-.container{
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-}
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+  }
 
-.coluna{
-  flex: 1;
-  background: #e9e9e9;
-  padding: 14px;
-  border-radius: 10px;
-  min-height: 420px;
-}
+  .title{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
 
-.coluna h2{
-  margin-top: 0;
-  margin-bottom: 14px;
-}
+  .title h1{
+    margin:0;
+    font-size:28px;
+    letter-spacing:0.2px;
+  }
 
-.pedido{
-  background: #fff;
-  border: 1px solid #d0d0d0;
-  padding: 12px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  line-height: 1.25;
-}
+  .subtitle{
+    color: var(--muted);
+    font-size: 13px;
+  }
 
-.pedido .codigo{
-  font-weight: bold;
-}
+  .actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:flex-end;
+  }
 
-.pedido .itens{
-  margin: 8px 0;
-}
+  .btn{
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: 0.15s;
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+  }
+  .btn:hover{ background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0px); }
 
-.pedido .linha{
-  margin: 2px 0;
-}
+  .pill{
+    border:1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted);
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
 
-.pedido button{
-  margin-top: 10px;
-  margin-right: 6px;
-  padding: 6px 10px;
-  border: 1px solid #bdbdbd;
-  border-radius: 6px;
-  background: #f7f7f7;
-  cursor: pointer;
-}
+  .dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
+  }
 
-.pedido button:hover{
-  background: #ececec;
-}
+  .board{
+    display:grid;
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
+    gap: 14px;
+    align-items:start;
+  }
 
-.vazio{
-  color: #666;
-  font-size: 14px;
-}
+  @media (max-width: 1200px){
+    .board{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  }
+  @media (max-width: 720px){
+    .board{ grid-template-columns: 1fr; }
+    body{ padding: 16px; }
+  }
+
+  .col{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+    min-height: 420px;
+  }
+
+  .colhead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom: 12px;
+  }
+
+  .colhead h2{
+    margin:0;
+    font-size: 14px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  .count{
+    background: rgba(255,255,255,0.10);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .list{ display:flex; flex-direction:column; gap:10px; }
+
+  .card{
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.28);
+  }
+
+  .cardtop{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .code{
+    font-weight: 800;
+    letter-spacing:0.3px;
+    font-size: 13px;
+  }
+
+  .time{
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .items{
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+    color: rgba(255,255,255,0.88);
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .meta{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    color: rgba(255,255,255,0.88);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .meta b{ color: var(--text); }
+  .meta .muted{ color: var(--muted); }
+
+  .cardactions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .btn-primary{
+    background: rgba(34,197,94,0.16);
+    border: 1px solid rgba(34,197,94,0.35);
+  }
+  .btn-primary:hover{ background: rgba(34,197,94,0.22); }
+
+  .btn-warn{
+    background: rgba(245,158,11,0.18);
+    border: 1px solid rgba(245,158,11,0.40);
+  }
+  .btn-warn:hover{ background: rgba(245,158,11,0.24); }
+
+  .btn-danger{
+    background: rgba(239,68,68,0.16);
+    border: 1px solid rgba(239,68,68,0.38);
+  }
+  .btn-danger:hover{ background: rgba(239,68,68,0.22); }
+
+  .empty{
+    color: var(--muted);
+    font-size: 13px;
+    padding: 10px 4px;
+  }
 </style>
 </head>
 
 <body>
 
-<h1>Painel da Loja</h1>
-
-<div class="container">
-  <div class="coluna">
-    <h2>PENDENTE</h2>
-    <div id="pendente"></div>
+<div class="topbar">
+  <div class="title">
+    <h1>🐊 Painel da Loja</h1>
+    <div class="subtitle">Atualiza a cada 5s • PENDENTE → PRONTO → ENTREGA → FINALIZADO</div>
   </div>
 
-  <div class="coluna">
-    <h2>PRONTO</h2>
-    <div id="pronto"></div>
+  <div class="actions">
+    <div class="pill"><span class="dot"></span><span id="statusConn">Conectado</span></div>
+    <button class="btn" onclick="carregarPedidos()">🔄 Atualizar</button>
+  </div>
+</div>
+
+<div class="board">
+
+  <div class="col">
+    <div class="colhead">
+      <h2>🟡 PENDENTE</h2>
+      <div class="count" id="count-pendente">0</div>
+    </div>
+    <div class="list" id="pendente"></div>
+    <div class="empty" id="empty-pendente" style="display:none;">Nenhum pedido pendente.</div>
   </div>
 
-  <div class="coluna">
-    <h2>ENTREGA</h2>
-    <div id="entrega"></div>
+  <div class="col">
+    <div class="colhead">
+      <h2>🟢 PRONTO</h2>
+      <div class="count" id="count-pronto">0</div>
+    </div>
+    <div class="list" id="pronto"></div>
+    <div class="empty" id="empty-pronto" style="display:none;">Nenhum pedido pronto.</div>
   </div>
 
-  <div class="coluna">
-    <h2>FINALIZADO</h2>
-    <div id="finalizado"></div>
+  <div class="col">
+    <div class="colhead">
+      <h2>🚚 ENTREGA</h2>
+      <div class="count" id="count-entrega">0</div>
+    </div>
+    <div class="list" id="entrega"></div>
+    <div class="empty" id="empty-entrega" style="display:none;">Nenhum pedido em entrega.</div>
   </div>
+
+  <div class="col">
+    <div class="colhead">
+      <h2>✅ FINALIZADO</h2>
+      <div class="count" id="count-finalizado">0</div>
+    </div>
+    <div class="list" id="finalizado"></div>
+    <div class="empty" id="empty-finalizado" style="display:none;">Nenhum pedido finalizado.</div>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -115,6 +297,12 @@ let totalPedidosAnterior = 0
 
 function formatarMoeda(valor){
   return Number(valor || 0).toFixed(2).replace('.', ',')
+}
+
+function formatarHora(iso){
+  if(!iso) return ""
+  const d = new Date(iso)
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
 }
 
 function tocarSomNovoPedido(){
@@ -143,46 +331,37 @@ function normalizarItens(itensBrutos){
   let itens = itensBrutos
 
   if(typeof itens === "string"){
-    try{
-      itens = JSON.parse(itens)
-    }catch(e){
-      console.error("Erro ao converter itens:", e)
-      return []
-    }
+    try{ itens = JSON.parse(itens) }catch(e){ return [] }
   }
 
-  if(Array.isArray(itens)){
-    return itens
-  }
-
-  if(itens && typeof itens === "object"){
-    return Object.values(itens)
-  }
-
+  if(Array.isArray(itens)) return itens
+  if(itens && typeof itens === "object") return Object.values(itens)
   return []
 }
 
 function montarItensHTML(itensBrutos){
   const itens = normalizarItens(itensBrutos)
-
-  if(!itens.length){
-    return "Sem itens"
-  }
+  if(!itens.length) return "Sem itens"
 
   let html = ""
-
   itens.forEach(i => {
     const qtd = Number(i.qtd || i.quantidade || 0)
     const nome = i.nome || i.name || "Item"
     const preco = Number(i.preco || i.price || 0)
     const presenteQtd = Number(i.presenteQtd || 0)
     const subtotal = preco * qtd
-    const txtPresente = presenteQtd > 0 ? ` (🎁 ${presenteQtd} para presente)` : ""
-
-    html += `• (${qtd}x) ${nome}${txtPresente} - R$ ${formatarMoeda(subtotal)}<br>`
+    const txtPresente = presenteQtd > 0 ? ` (🎁 ${presenteQtd} presente)` : ""
+    html += `• (${qtd}x) ${nome}${txtPresente} — R$ ${formatarMoeda(subtotal)}<br>`
   })
-
   return html
+}
+
+function setCount(id, value){
+  document.getElementById(id).textContent = String(value)
+}
+
+function setEmpty(status, isEmpty){
+  document.getElementById(`empty-${status}`).style.display = isEmpty ? "block" : "none"
 }
 
 async function carregarPedidos(){
@@ -193,76 +372,79 @@ async function carregarPedidos(){
 
   if(error){
     console.error(error)
+    document.getElementById("statusConn").textContent = "Erro"
     return
   }
+
+  document.getElementById("statusConn").textContent = "Conectado"
 
   if(data.length > totalPedidosAnterior && totalPedidosAnterior !== 0){
     tocarSomNovoPedido()
   }
-
   totalPedidosAnterior = data.length
 
-  document.getElementById("pendente").innerHTML = ""
-  document.getElementById("pronto").innerHTML = ""
-  document.getElementById("entrega").innerHTML = ""
-  document.getElementById("finalizado").innerHTML = ""
+  const cols = ["pendente","pronto","entrega","finalizado"]
+  cols.forEach(c => document.getElementById(c).innerHTML = "")
 
-  if(!data.length){
-    document.getElementById("pendente").innerHTML = `<div class="vazio">Nenhum pedido</div>`
-    return
-  }
+  let counts = { pendente:0, pronto:0, entrega:0, finalizado:0 }
 
   data.forEach(p => {
+    const st = (p.status || "").toLowerCase()
+    if(!counts.hasOwnProperty(st)) return
+    counts[st]++
+
     const itensHTML = montarItensHTML(p.itens)
 
-    let html = `
-      <div class="pedido">
-        <div class="linha codigo">Pedido: ${p.code || "-"}</div>
-        <div class="linha"><b>Itens:</b></div>
-        <div class="itens">${itensHTML}</div>
-        <div class="linha"><b>Total:</b> R$ ${formatarMoeda(p.total)}</div>
-        <div class="linha"><b>Endereço:</b> ${p.endereco || "-"}</div>
-    `
+    let actions = ""
 
     if(p.status === "PENDENTE"){
-      html += `
-        <button onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">
-          Preparado
-        </button>
-      `
+      actions += `<button class="btn btn-primary" onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">✅ Preparado</button>`
     }
 
     if(p.status === "PRONTO"){
-      html += `
-        <button onclick="mudarStatus('${p.code}','ENTREGA')">
-          Uber pegou
-        </button>
-      `
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','ENTREGA')">🚚 Uber pegou</button>`
     }
 
     if(p.status === "ENTREGA"){
-      html += `
-        <button onclick="mudarStatus('${p.code}','FINALIZADO')">
-          Forçar finalização
-        </button>
-      `
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','FINALIZADO')">⚠️ Forçar finalização</button>`
     }
 
     if(p.status === "FINALIZADO"){
-      html += `
-        <button onclick="removerPedido('${p.id}')">
-          Remover da tela
-        </button>
-      `
+      actions += `<button class="btn btn-danger" onclick="removerPedido('${p.id}')">🗑 Remover</button>`
     }
 
-    html += `</div>`
+    const card = `
+      <div class="card">
+        <div class="cardtop">
+          <div class="code">Pedido: ${p.code || "-"}</div>
+          <div class="time">${formatarHora(p.created_at)}</div>
+        </div>
 
-    const coluna = document.getElementById((p.status || "").toLowerCase())
-    if(coluna){
-      coluna.innerHTML += html
-    }
+        <div class="items">
+          <b>Itens:</b><br>${itensHTML}
+        </div>
+
+        <div class="meta">
+          <div><b>Total:</b> R$ ${formatarMoeda(p.total)}</div>
+          <div class="muted"><b>Endereço:</b> ${p.endereco || "-"}</div>
+        </div>
+
+        <div class="cardactions">${actions}</div>
+      </div>
+    `
+
+    document.getElementById(st).innerHTML += card
   })
+
+  setCount("count-pendente", counts.pendente)
+  setCount("count-pronto", counts.pronto)
+  setCount("count-entrega", counts.entrega)
+  setCount("count-finalizado", counts.finalizado)
+
+  setEmpty("pendente", counts.pendente === 0)
+  setEmpty("pronto", counts.pronto === 0)
+  setEmpty("entrega", counts.entrega === 0)
+  setEmpty("finalizado", counts.finalizado === 0)
 }
 
 async function marcarPronto(codigo, token){
@@ -297,8 +479,8 @@ async function mudarStatus(codigo, status){
 }
 
 async function removerPedido(id){
-  const confirmar = confirm("Remover este pedido finalizado da tela?")
-  if(!confirmar) return
+  const ok = confirm("Remover este pedido finalizado?")
+  if(!ok) return
 
   const { error } = await supabaseClient
     .from('pedidos')
@@ -306,7 +488,7 @@ async function removerPedido(id){
     .eq('id', id)
 
   if(error){
-    alert("Erro ao remover pedido")
+    alert("Erro ao remover")
     console.error(error)
     return
   }
