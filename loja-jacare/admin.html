@@ -99,11 +99,24 @@ async function carregarPedidos(){
 
     let itensHTML = ""
 
-    if(p.itens){
-      p.itens.forEach(i => {
+    let itens = p.itens
 
-        const sub = i.preco * i.qtd
-        let txtPresente = i.presenteQtd > 0 ? ` (🎁 ${i.presenteQtd} para presente)` : ""
+    if(typeof itens === "string"){
+      try{
+        itens = JSON.parse(itens)
+      }catch(e){
+        console.error("Erro ao converter itens:", e)
+        itens = []
+      }
+    }
+
+    if(Array.isArray(itens)){
+      itens.forEach(i => {
+
+        const sub = Number(i.preco || 0) * Number(i.qtd || 0)
+        let txtPresente = Number(i.presenteQtd || 0) > 0
+          ? ` (🎁 ${i.presenteQtd} para presente)`
+          : ""
 
         itensHTML += `• (${i.qtd}x) ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}<br>`
 
@@ -115,10 +128,10 @@ async function carregarPedidos(){
       <b>Pedido:</b> ${p.code} <br>
 
       <b>Itens:</b><br>
-      ${itensHTML}<br>
+      ${itensHTML || "Sem itens"}<br>
 
-      <b>Total:</b> R$ ${p.total} <br>
-      <b>Endereço:</b> ${p.endereco} <br>
+      <b>Total:</b> R$ ${Number(p.total || 0).toFixed(2).replace('.', ',')} <br>
+      <b>Endereço:</b> ${p.endereco || "-"} <br>
     `
 
     if(p.status === "PENDENTE"){
@@ -144,7 +157,10 @@ async function carregarPedidos(){
 
     html += "</div>"
 
-    document.getElementById(p.status.toLowerCase()).innerHTML += html
+    const coluna = document.getElementById((p.status || "").toLowerCase())
+    if(coluna){
+      coluna.innerHTML += html
+    }
 
   })
 }
@@ -183,16 +199,13 @@ async function mudarStatus(codigo, status){
 }
 
 function tocarSomNovoPedido(){
-
   const audio = new Audio(
     "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"
   )
-
   audio.play()
 }
 
 carregarPedidos()
-
 setInterval(carregarPedidos, 5000)
 
 </script>
