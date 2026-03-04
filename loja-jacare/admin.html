@@ -65,17 +65,16 @@ body{
 
 <script>
 
-const supabase = window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   "SUA_SUPABASE_URL",
   "SUA_SUPABASE_PUBLIC_KEY"
 )
 
-// 🔔 controle de pedidos anteriores
 let totalPedidosAnterior = 0
 
 async function carregarPedidos(){
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('pedidos')
     .select('*')
     .order('id', { ascending: false })
@@ -85,7 +84,6 @@ async function carregarPedidos(){
     return
   }
 
-  // 🔔 detectar novo pedido
   if(data.length > totalPedidosAnterior && totalPedidosAnterior !== 0){
     tocarSomNovoPedido()
   }
@@ -171,7 +169,7 @@ async function marcarPronto(codigo, token){
 
 async function mudarStatus(codigo, status){
 
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('pedidos')
     .update({ status: status })
     .eq('code', codigo)
@@ -184,7 +182,6 @@ async function mudarStatus(codigo, status){
   carregarPedidos()
 }
 
-// 🔔 função do som
 function tocarSomNovoPedido(){
 
   const audio = new Audio(
@@ -196,7 +193,6 @@ function tocarSomNovoPedido(){
 
 carregarPedidos()
 
-// AUTO ATUALIZAÇÃO A CADA 5 SEGUNDOS
 setInterval(carregarPedidos, 5000)
 
 </script>
