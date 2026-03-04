@@ -242,8 +242,10 @@
   <div class="actions">
     <div class="pill"><span class="dot"></span><span id="statusConn">Conectado</span></div>
 
-    <!-- ✅ NOVO: botão relatório -->
     <button class="btn" onclick="baixarRelatorio()">📄 Relatório do dia</button>
+
+    <!-- ✅ NOVO: limpar finalizados do dia -->
+    <button class="btn" onclick="limparFinalizadosHoje()">🧹 Limpar finalizados de hoje</button>
 
     <button class="btn" onclick="carregarPedidos()">🔄 Atualizar</button>
   </div>
@@ -482,7 +484,6 @@ async function mudarStatus(codigo, status){
   carregarPedidos()
 }
 
-/* ✅ ALTERADO: remover agora usa /api/remover (service role) */
 async function removerPedido(id){
   const ok = confirm("Remover este pedido finalizado?")
   if(!ok) return
@@ -503,9 +504,30 @@ async function removerPedido(id){
   carregarPedidos()
 }
 
-/* ✅ NOVO: baixar PDF do dia */
 function baixarRelatorio(){
   window.open("/api/relatorio", "_blank")
+}
+
+/* ✅ NOVO: limpar finalizados de hoje via /api/limpar_finalizados */
+async function limparFinalizadosHoje(){
+  const ok = confirm("Isso vai APAGAR do banco todos os pedidos FINALIZADOS de hoje. Já gerou o relatório?")
+  if(!ok) return
+
+  const r = await fetch("/api/limpar_finalizados",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({})
+  })
+
+  const j = await r.json()
+  if(!j.sucesso){
+    alert("Erro ao limpar finalizados")
+    console.error(j)
+    return
+  }
+
+  alert(`Finalizados removidos: ${j.removidos}`)
+  carregarPedidos()
 }
 
 carregarPedidos()
