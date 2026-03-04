@@ -241,6 +241,10 @@
 
   <div class="actions">
     <div class="pill"><span class="dot"></span><span id="statusConn">Conectado</span></div>
+
+    <!-- ✅ NOVO: botão relatório -->
+    <button class="btn" onclick="baixarRelatorio()">📄 Relatório do dia</button>
+
     <button class="btn" onclick="carregarPedidos()">🔄 Atualizar</button>
   </div>
 </div>
@@ -478,22 +482,30 @@ async function mudarStatus(codigo, status){
   carregarPedidos()
 }
 
+/* ✅ ALTERADO: remover agora usa /api/remover (service role) */
 async function removerPedido(id){
   const ok = confirm("Remover este pedido finalizado?")
   if(!ok) return
 
-  const { error } = await supabaseClient
-    .from('pedidos')
-    .delete()
-    .eq('id', id)
+  const r = await fetch("/api/remover",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ id })
+  })
 
-  if(error){
+  const j = await r.json()
+  if(!j.sucesso){
     alert("Erro ao remover")
-    console.error(error)
+    console.error(j)
     return
   }
 
   carregarPedidos()
+}
+
+/* ✅ NOVO: baixar PDF do dia */
+function baixarRelatorio(){
+  window.open("/api/relatorio", "_blank")
 }
 
 carregarPedidos()
