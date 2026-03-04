@@ -6,31 +6,75 @@
 
 <style>
 body{
-  font-family: Arial;
-  padding:40px;
+  font-family: Arial, sans-serif;
+  padding: 30px;
+  background: #f4f4f4;
+}
+
+h1{
+  margin-bottom: 24px;
 }
 
 .container{
-  display:flex;
-  gap:20px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .coluna{
-  flex:1;
-  background:#f5f5f5;
-  padding:15px;
-  border-radius:8px;
+  flex: 1;
+  background: #e9e9e9;
+  padding: 14px;
+  border-radius: 10px;
+  min-height: 420px;
+}
+
+.coluna h2{
+  margin-top: 0;
+  margin-bottom: 14px;
 }
 
 .pedido{
-  background:white;
-  border:1px solid #ccc;
-  padding:10px;
-  margin-bottom:10px;
-  border-radius:5px;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  line-height: 1.25;
+}
+
+.pedido .codigo{
+  font-weight: bold;
+}
+
+.pedido .itens{
+  margin: 8px 0;
+}
+
+.pedido .linha{
+  margin: 2px 0;
+}
+
+.pedido button{
+  margin-top: 10px;
+  margin-right: 6px;
+  padding: 6px 10px;
+  border: 1px solid #bdbdbd;
+  border-radius: 6px;
+  background: #f7f7f7;
+  cursor: pointer;
+}
+
+.pedido button:hover{
+  background: #ececec;
+}
+
+.vazio{
+  color: #666;
+  font-size: 14px;
 }
 </style>
-
 </head>
 
 <body>
@@ -38,33 +82,30 @@ body{
 <h1>Painel da Loja</h1>
 
 <div class="container">
+  <div class="coluna">
+    <h2>PENDENTE</h2>
+    <div id="pendente"></div>
+  </div>
 
-<div class="coluna">
-<h2>PENDENTE</h2>
-<div id="pendente"></div>
-</div>
+  <div class="coluna">
+    <h2>PRONTO</h2>
+    <div id="pronto"></div>
+  </div>
 
-<div class="coluna">
-<h2>PRONTO</h2>
-<div id="pronto"></div>
-</div>
+  <div class="coluna">
+    <h2>ENTREGA</h2>
+    <div id="entrega"></div>
+  </div>
 
-<div class="coluna">
-<h2>ENTREGA</h2>
-<div id="entrega"></div>
-</div>
-
-<div class="coluna">
-<h2>FINALIZADO</h2>
-<div id="finalizado"></div>
-</div>
-
+  <div class="coluna">
+    <h2>FINALIZADO</h2>
+    <div id="finalizado"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <script>
-
 const supabaseClient = window.supabase.createClient(
   "https://ffmtqfjafolydcdaldap.supabase.co",
   "sb_publishable_BoUeyott9mr3wpDRS4VP7g_mn7mAQx_"
@@ -72,12 +113,83 @@ const supabaseClient = window.supabase.createClient(
 
 let totalPedidosAnterior = 0
 
-async function carregarPedidos(){
+function formatarMoeda(valor){
+  return Number(valor || 0).toFixed(2).replace('.', ',')
+}
 
+function tocarSomNovoPedido(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+
+    gain.gain.setValueAtTime(0.05, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start()
+    osc.stop(ctx.currentTime + 0.12)
+  }catch(e){
+    console.error("Erro ao tocar som:", e)
+  }
+}
+
+function normalizarItens(itensBrutos){
+  let itens = itensBrutos
+
+  if(typeof itens === "string"){
+    try{
+      itens = JSON.parse(itens)
+    }catch(e){
+      console.error("Erro ao converter itens:", e)
+      return []
+    }
+  }
+
+  if(Array.isArray(itens)){
+    return itens
+  }
+
+  if(itens && typeof itens === "object"){
+    return Object.values(itens)
+  }
+
+  return []
+}
+
+function montarItensHTML(itensBrutos){
+  const itens = normalizarItens(itensBrutos)
+
+  if(!itens.length){
+    return "Sem itens"
+  }
+
+  let html = ""
+
+  itens.forEach(i => {
+    const qtd = Number(i.qtd || i.quantidade || 0)
+    const nome = i.nome || i.name || "Item"
+    const preco = Number(i.preco || i.price || 0)
+    const presenteQtd = Number(i.presenteQtd || 0)
+    const subtotal = preco * qtd
+    const txtPresente = presenteQtd > 0 ? ` (🎁 ${presenteQtd} para presente)` : ""
+
+    html += `• (${qtd}x) ${nome}${txtPresente} - R$ ${formatarMoeda(subtotal)}<br>`
+  })
+
+  return html
+}
+
+async function carregarPedidos(){
   const { data, error } = await supabaseClient
     .from('pedidos')
     .select('*')
-    .order('id', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if(error){
     console.error(error)
@@ -95,81 +207,68 @@ async function carregarPedidos(){
   document.getElementById("entrega").innerHTML = ""
   document.getElementById("finalizado").innerHTML = ""
 
+  if(!data.length){
+    document.getElementById("pendente").innerHTML = `<div class="vazio">Nenhum pedido</div>`
+    return
+  }
+
   data.forEach(p => {
-
-    let itensHTML = ""
-
-    let itens = p.itens
-
-    if(typeof itens === "string"){
-      try{
-        itens = JSON.parse(itens)
-      }catch(e){
-        console.error("Erro ao converter itens:", e)
-        itens = []
-      }
-    }
-
-    if(Array.isArray(itens)){
-      itens.forEach(i => {
-
-        const sub = Number(i.preco || 0) * Number(i.qtd || 0)
-        let txtPresente = Number(i.presenteQtd || 0) > 0
-          ? ` (🎁 ${i.presenteQtd} para presente)`
-          : ""
-
-        itensHTML += `• (${i.qtd}x) ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}<br>`
-
-      })
-    }
+    const itensHTML = montarItensHTML(p.itens)
 
     let html = `
-    <div class="pedido">
-      <b>Pedido:</b> ${p.code} <br>
-
-      <b>Itens:</b><br>
-      ${itensHTML || "Sem itens"}<br>
-
-      <b>Total:</b> R$ ${Number(p.total || 0).toFixed(2).replace('.', ',')} <br>
-      <b>Endereço:</b> ${p.endereco || "-"} <br>
+      <div class="pedido">
+        <div class="linha codigo">Pedido: ${p.code || "-"}</div>
+        <div class="linha"><b>Itens:</b></div>
+        <div class="itens">${itensHTML}</div>
+        <div class="linha"><b>Total:</b> R$ ${formatarMoeda(p.total)}</div>
+        <div class="linha"><b>Endereço:</b> ${p.endereco || "-"}</div>
     `
 
     if(p.status === "PENDENTE"){
-      html += `<br>
-      <button onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">
-      Preparado
-      </button>`
+      html += `
+        <button onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">
+          Preparado
+        </button>
+      `
     }
 
     if(p.status === "PRONTO"){
-      html += `<br>
-      <button onclick="mudarStatus('${p.code}','ENTREGA')">
-      Uber pegou
-      </button>`
+      html += `
+        <button onclick="mudarStatus('${p.code}','ENTREGA')">
+          Uber pegou
+        </button>
+      `
     }
 
     if(p.status === "ENTREGA"){
-      html += `<br>
-      <button onclick="mudarStatus('${p.code}','FINALIZADO')">
-      Entregue
-      </button>`
+      html += `
+        <button onclick="mudarStatus('${p.code}','FINALIZADO')">
+          Forçar finalização
+        </button>
+      `
     }
 
-    html += "</div>"
+    if(p.status === "FINALIZADO"){
+      html += `
+        <button onclick="removerPedido('${p.id}')">
+          Remover da tela
+        </button>
+      `
+    }
+
+    html += `</div>`
 
     const coluna = document.getElementById((p.status || "").toLowerCase())
     if(coluna){
       coluna.innerHTML += html
     }
-
   })
 }
 
 async function marcarPronto(codigo, token){
-
-  const r = await fetch("/api/confirmar",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
+  const r = await fetch("/api/confirmar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ codigo, token })
   })
 
@@ -184,7 +283,6 @@ async function marcarPronto(codigo, token){
 }
 
 async function mudarStatus(codigo, status){
-
   const { error } = await supabaseClient
     .from('pedidos')
     .update({ status: status })
@@ -198,16 +296,26 @@ async function mudarStatus(codigo, status){
   carregarPedidos()
 }
 
-function tocarSomNovoPedido(){
-  const audio = new Audio(
-    "https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg"
-  )
-  audio.play()
+async function removerPedido(id){
+  const confirmar = confirm("Remover este pedido finalizado da tela?")
+  if(!confirmar) return
+
+  const { error } = await supabaseClient
+    .from('pedidos')
+    .delete()
+    .eq('id', id)
+
+  if(error){
+    alert("Erro ao remover pedido")
+    console.error(error)
+    return
+  }
+
+  carregarPedidos()
 }
 
 carregarPedidos()
 setInterval(carregarPedidos, 5000)
-
 </script>
 
 </body>
