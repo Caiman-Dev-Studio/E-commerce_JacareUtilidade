@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Área dos Funcionários | Loja Jacaré</title>
+  <style>
+    :root{
+      --green:#1f6b3c;
+      --green-dark:#154a2a;
+      --gold:#f4c542;
+      --gold-dark:#d29d16;
+      --text:#18311f;
+      --cream:#fff9eb;
+      --shadow:0 24px 60px rgba(0,0,0,.28);
+      --radius:28px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, Arial, sans-serif;
+      color:#fff;
+      background:
+        linear-gradient(rgba(11,34,19,.20), rgba(11,34,19,.30)),
+        url('/admin-login-bg.png') center/cover no-repeat fixed;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      backdrop-filter: blur(2px);
+      pointer-events:none;
+    }
+    .shell{
+      position:relative;
+      z-index:1;
+      width:min(92vw, 720px);
+      padding:24px;
+    }
+    .card{
+      background:rgba(255,249,235,.90);
+      border:1px solid rgba(255,255,255,.55);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:26px;
+      text-align:center;
+    }
+    .logo{
+      display:inline-flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+      padding:10px 18px;
+      border-radius:999px;
+      background:rgba(31,107,60,.10);
+      color:var(--green-dark);
+      font-weight:800;
+      font-size:14px;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+    }
+    .logo img{
+      width:38px;
+      height:38px;
+      object-fit:contain;
+      border-radius:50%;
+      background:#fff;
+      padding:4px;
+      box-shadow:0 4px 10px rgba(0,0,0,.10);
+    }
+    h1{
+      margin:8px 0 10px;
+      color:var(--green-dark);
+      font-size:clamp(30px, 5vw, 52px);
+      line-height:1;
+    }
+    p{
+      margin:0 auto 24px;
+      max-width:520px;
+      color:#31513b;
+      font-size:16px;
+      line-height:1.45;
+    }
+    form{
+      max-width:520px;
+      margin:0 auto;
+    }
+    .field{
+      position:relative;
+      margin-bottom:18px;
+    }
+    .field input{
+      width:100%;
+      border:none;
+      outline:none;
+      padding:20px 22px 20px 58px;
+      border-radius:999px;
+      font-size:19px;
+      background:#fffef8;
+      color:var(--text);
+      box-shadow: inset 0 0 0 2px rgba(31,107,60,.18), 0 8px 20px rgba(0,0,0,.08);
+    }
+    .field input:focus{
+      box-shadow: inset 0 0 0 2px rgba(31,107,60,.45), 0 8px 20px rgba(0,0,0,.10);
+    }
+    .icon{
+      position:absolute;
+      left:20px;
+      top:50%;
+      transform:translateY(-50%);
+      font-size:22px;
+    }
+    button{
+      width:min(100%, 420px);
+      border:none;
+      cursor:pointer;
+      padding:18px 24px;
+      border-radius:999px;
+      background:linear-gradient(180deg, #ffd94d, #f0bb19);
+      color:#503900;
+      font-size:24px;
+      font-weight:900;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      box-shadow:0 10px 0 #b88911, 0 18px 28px rgba(0,0,0,.15);
+      transition:transform .18s ease, box-shadow .18s ease;
+    }
+    button:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 0 #b88911, 0 24px 34px rgba(0,0,0,.18);
+    }
+    button:active{
+      transform:translateY(2px);
+      box-shadow:0 6px 0 #b88911, 0 10px 18px rgba(0,0,0,.14);
+    }
+    .error{
+      min-height:24px;
+      margin-top:16px;
+      color:#a12323;
+      font-weight:700;
+    }
+    .hint{
+      margin-top:12px;
+      font-size:13px;
+      color:#54725b;
+    }
+    @media (max-width:640px){
+      .card{padding:22px 16px}
+      .field input{font-size:17px;padding:18px 18px 18px 52px}
+      button{font-size:21px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="card">
+      <div class="logo">
+        <img src="/logo-caiman.png" alt="Loja Jacaré" />
+        Loja Jacaré
+      </div>
+
+      <h1>Área dos Funcionários</h1>
+      <p>Digite a senha da loja para acessar o painel de aprovação e preparação dos pedidos.</p>
+
+      <form id="login-form">
+        <div class="field">
+          <span class="icon">🔒</span>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Digite a senha de acesso"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button type="submit">Entrar</button>
+        <div id="error" class="error"></div>
+        <div class="hint">Acesso interno da loja.</div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('error');
+    const passwordEl = document.getElementById('password');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorEl.textContent = '';
+
+      const password = passwordEl.value.trim();
+      if (!password) {
+        errorEl.textContent = 'Digite a senha para continuar.';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.ok) {
+          errorEl.textContent = data.error || 'Senha inválida.';
+          return;
+        }
+
+        window.location.href = '/admin.html';
+      } catch (error) {
+        errorEl.textContent = 'Não foi possível entrar agora.';
+      }
+    });
+  </script>
+</body>
+</html>
