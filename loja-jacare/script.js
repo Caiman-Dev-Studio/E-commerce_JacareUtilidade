@@ -330,9 +330,7 @@ async function finalizarPedido() {
     }
 
     msg += `\n É um sucesso!\n\n`;
-    msg += `🔐 Confirmar pedido:\n`;
-    msg += `https://jacare-utilidades.vercel.app/confirmar.html?codigo=${codPedido}&token=${tokenConfirmacao}`;
-
+    
     console.log("🔍 MENSAGEM (texto plano):", msg);
 
     // 🔥 CODIFICAR TUDO DE UMA VEZ PARA URL
