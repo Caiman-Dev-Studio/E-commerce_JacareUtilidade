@@ -233,6 +233,18 @@
 
 <body>
 
+<script>
+  function hasAdminSession() {
+    return document.cookie.split(';').some(cookie =>
+      cookie.trim().startsWith('jacare_admin_session=')
+    );
+  }
+
+  if (!hasAdminSession()) {
+    window.location.href = '/funcionarios.html';
+  }
+</script>
+
 <div class="topbar">
   <div class="title">
     <h1>🐊 Painel da Loja</h1>
