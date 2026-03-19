@@ -5,7 +5,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let produtosLocais = [];
 let bannersLocais = [];
 let carrinho = [];
-let valorFreteAtual = 0; 
+let valorFreteAtual = 0;
 let bannerAtual = 0;
 let modalQuantidadeAtual = 1;
 let produtoAtualModal = null;
@@ -27,26 +27,63 @@ function renderizarBanner(i) {
     const img = document.getElementById('banner-img');
     if (img && bannersLocais[i]) {
         img.style.opacity = 0;
-        setTimeout(() => { img.src = bannersLocais[i]; img.style.opacity = 1; }, 500);
+        setTimeout(() => {
+            img.src = bannersLocais[i];
+            img.style.opacity = 1;
+        }, 500);
     }
 }
 
 async function calcularFrete() {
-    const endereco = document.getElementById('input-endereco').value.trim();
-    if (!endereco) return;
+    const metodoEntrega = document.getElementById('metodo-entrega')?.value;
+    const enderecoInput = document.getElementById('input-endereco');
+    const endereco = enderecoInput ? enderecoInput.value.trim() : '';
 
-    const response = await fetch('/api/quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: endereco })
-    });
-
-    const data = await response.json();
-
-    if (data.shipping) {
-        valorFreteAtual = data.shipping;
+    if (metodoEntrega !== 'Entrega') {
+        valorFreteAtual = 0;
         atualizarTotalComFrete();
-        alert(`🛵 Frete: R$ ${data.shipping.toFixed(2)} | ETA: ${data.eta}`);
+        return;
+    }
+
+    if (!endereco) {
+        valorFreteAtual = 0;
+        atualizarTotalComFrete();
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: endereco })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('Erro ao calcular frete:', data);
+            alert(data?.error || 'Erro ao calcular o frete.');
+            valorFreteAtual = 0;
+            atualizarTotalComFrete();
+            return;
+        }
+
+        if (typeof data.shipping === 'number') {
+            valorFreteAtual = data.shipping;
+            atualizarTotalComFrete();
+
+            const etaTexto = data.eta ? ` | ETA: ${data.eta}` : '';
+            alert(`🛵 Frete: R$ ${data.shipping.toFixed(2).replace('.', ',')}${etaTexto}`);
+        } else {
+            valorFreteAtual = 0;
+            atualizarTotalComFrete();
+            alert('Não foi possível calcular o frete.');
+        }
+    } catch (error) {
+        console.error('Erro na chamada /api/quote:', error);
+        valorFreteAtual = 0;
+        atualizarTotalComFrete();
+        alert('Erro ao consultar o frete.');
     }
 }
 
@@ -55,9 +92,11 @@ function atualizarTotalComFrete() {
     carrinho.forEach(item => total += item.preco);
 
     const totalFinal = total + valorFreteAtual;
+    const resumo = document.getElementById('resumo-total-geral');
 
-    document.getElementById('resumo-total-geral').innerText =
-        `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+    if (resumo) {
+        resumo.innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+    }
 }
 
 async function carregarProdutos() {
@@ -71,11 +110,11 @@ async function carregarProdutos() {
 function renderizarGrids(lista) {
     const itensDisponiveis = lista.filter(p => p.estoque > 0);
 
-    const itensPromocao = itensDisponiveis.filter(p => 
+    const itensPromocao = itensDisponiveis.filter(p =>
         String(p.em_promocao).toLowerCase() === 'true' || p.em_promocao === 1
     );
-    
-    const itensGerais = itensDisponiveis.filter(p => 
+
+    const itensGerais = itensDisponiveis.filter(p =>
         !(String(p.em_promocao).toLowerCase() === 'true' || p.em_promocao === 1)
     );
 
@@ -113,7 +152,10 @@ function buscarProdutos() {
     const categories = document.querySelector('.categories');
     const btnVoltar = document.getElementById('container-busca-voltar');
 
-    if (!termo) { limparBusca(); return; }
+    if (!termo) {
+        limparBusca();
+        return;
+    }
 
     if (hero) hero.style.display = 'none';
     if (categories) categories.style.display = 'none';
@@ -156,9 +198,8 @@ function abrirDetalhes(id) {
 
     document.getElementById('modal-titulo').innerText = p.nome;
 
-    // LÓGICA DE GALERIA: Pega as colunas imagem_url, imagem_url2 e imagem_url3
     const imagens = [p.imagem_url, p.imagem_url2, p.imagem_url3].filter(img => img && img !== "");
-    
+
     let galeriaHtml = `<img src="${imagens[0]}" id="foto-principal-modal" class="main-modal-img">`;
 
     if (imagens.length > 1) {
@@ -168,10 +209,10 @@ function abrirDetalhes(id) {
         });
         galeriaHtml += `</div>`;
     }
-    
+
     document.getElementById('modal-galeria').innerHTML = galeriaHtml;
     document.getElementById('modal-descricao').innerText = p.descricao || 'É um sucesso!';
-    
+
     atualizarModalUI();
     const btn = document.getElementById('modal-btn-acao');
     btn.innerText = "Adicionar ao Carrinho";
@@ -206,7 +247,7 @@ function ajustarQtdModal(delta) {
 // --- CARRINHO E WHATSAPP ---
 function confirmarAdicaoAoCarrinho() {
     for (let i = 0; i < modalQuantidadeAtual; i++) {
-        carrinho.push({ ...produtoAtualModal, presente: false }); 
+        carrinho.push({ ...produtoAtualModal, presente: false });
     }
     document.getElementById('cart-count').innerText = carrinho.length;
     document.getElementById('modal-area-venda').style.display = 'none';
@@ -242,14 +283,19 @@ function abrirCarrinho() {
                 <div class="cart-item-price">R$ ${item.preco.toFixed(2).replace('.', ',')}</div>
             </div>`;
     });
-    document.getElementById('resumo-total-geral').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+
+    const totalFinal = total + valorFreteAtual;
+    document.getElementById('resumo-total-geral').innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+
     const btn = document.getElementById('modal-btn-acao');
     btn.innerText = "🚀 Finalizar no WhatsApp";
     btn.onclick = finalizarPedido;
     document.getElementById('modal-produto').style.display = 'block';
 }
 
-function togglePresente(index, valor) { carrinho[index].presente = valor; }
+function togglePresente(index, valor) {
+    carrinho[index].presente = valor;
+}
 
 function removerDoCarrinho(index) {
     carrinho.splice(index, 1);
@@ -261,7 +307,7 @@ function removerDoCarrinho(index) {
 async function finalizarPedido() {
     const pag = document.getElementById('metodo-pagamento').value;
     const entrega = document.getElementById('metodo-entrega').value;
-    const endereco = document.getElementById('input-endereco').value;
+    const endereco = document.getElementById('input-endereco').value.trim();
     const codPedido = 'JAC-' + Math.floor(1000 + Math.random() * 9000);
 
     if (entrega === 'Entrega' && !endereco) {
@@ -269,7 +315,10 @@ async function finalizarPedido() {
         return;
     }
 
-    // Agrupar itens
+    if (entrega === 'Entrega' && valorFreteAtual === 0) {
+        await calcularFrete();
+    }
+
     const itensAgrupados = {};
     carrinho.forEach(item => {
         if (!itensAgrupados[item.id]) {
@@ -286,23 +335,20 @@ async function finalizarPedido() {
 
     const totalFinal = totalGeral + valorFreteAtual;
     const tokenConfirmacao = crypto.randomUUID();
-    
-    console.log("🔍 TOKEN GERADO:", tokenConfirmacao);
 
-    // 🔥 SALVAR NO SUPABASE
     const { error } = await supabaseClient
-    .from('pedidos')
-    .insert([
-        {
-            code: codPedido,
-            itens: itensAgrupados,
-            endereco: entrega === 'Entrega' ? endereco : null,
-            frete: valorFreteAtual,
-            total: totalFinal,
-            status: 'PENDENTE',
-            token_confirmacao: tokenConfirmacao
-        }
-    ]);
+        .from('pedidos')
+        .insert([
+            {
+                code: codPedido,
+                itens: itensAgrupados,
+                endereco: entrega === 'Entrega' ? endereco : null,
+                frete: valorFreteAtual,
+                total: totalFinal,
+                status: 'PENDENTE',
+                token_confirmacao: tokenConfirmacao
+            }
+        ]);
 
     if (error) {
         console.error("Erro ao salvar pedido:", error);
@@ -310,7 +356,6 @@ async function finalizarPedido() {
         return;
     }
 
-    // 🟢 MONTAR MENSAGEM WHATSAPP - TUDO EM TEXTO PLANO PRIMEIRO
     let msg = "";
     msg += "🐊 *PEDIDO JACARÉ UTILIDADES*\n";
     msg += "🆔 *CÓDIGO:* " + codPedido + "\n\n";
@@ -321,6 +366,10 @@ async function finalizarPedido() {
         msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
     });
 
+    if (entrega === 'Entrega') {
+        msg += `\n*FRETE:* R$ ${valorFreteAtual.toFixed(2).replace('.', ',')}\n`;
+    }
+
     msg += `\n*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}\n`;
     msg += `*PAGAMENTO:* ${pag}\n`;
     msg += `*TIPO:* ${entrega}\n`;
@@ -329,21 +378,17 @@ async function finalizarPedido() {
         msg += `*ENDEREÇO:* ${endereco.toUpperCase()}\n`;
     }
 
-    msg += `\n É um sucesso!\n\n`;
-    
-    console.log("🔍 MENSAGEM (texto plano):", msg);
+    msg += `\nÉ um sucesso!\n\n`;
 
-    // 🔥 CODIFICAR TUDO DE UMA VEZ PARA URL
     const msgCodificada = encodeURIComponent(msg);
-    
-    console.log("🔍 MENSAGEM CODIFICADA:", msgCodificada);
-    
     window.open(`https://wa.me/31998997812?text=${msgCodificada}`, '_blank');
 }
 
-function fecharModal() { document.getElementById('modal-produto').style.display = 'none'; }
+function fecharModal() {
+    document.getElementById('modal-produto').style.display = 'none';
+}
 
-function toggleEndereco() { 
+function toggleEndereco() {
     const metodo = document.getElementById('metodo-entrega').value;
     const campoEndereco = document.getElementById('campo-endereco');
     const avisoHorario = document.getElementById('aviso-horario');
@@ -355,10 +400,13 @@ function toggleEndereco() {
         if (avisoHorario) avisoHorario.style.display = 'none';
         if (optDinheiro) optDinheiro.style.display = 'none';
         if (selectPag.value === 'Dinheiro') selectPag.value = 'Pix';
+        setTimeout(() => calcularFrete(), 100);
     } else {
         campoEndereco.style.display = 'none';
         if (avisoHorario) avisoHorario.style.display = 'block';
         if (optDinheiro) optDinheiro.style.display = 'block';
+        valorFreteAtual = 0;
+        atualizarTotalComFrete();
     }
 }
 
@@ -372,5 +420,23 @@ function compartilharProduto() {
     }
 }
 
+function configurarEventosFrete() {
+    const inputEndereco = document.getElementById('input-endereco');
+    const metodoEntrega = document.getElementById('metodo-entrega');
+
+    if (inputEndereco) {
+        inputEndereco.addEventListener('blur', calcularFrete);
+        inputEndereco.addEventListener('change', calcularFrete);
+    }
+
+    if (metodoEntrega) {
+        metodoEntrega.addEventListener('change', toggleEndereco);
+    }
+}
+
 carregarProdutos();
 carregarBanners();
+
+document.addEventListener('DOMContentLoaded', () => {
+    configurarEventosFrete();
+});
