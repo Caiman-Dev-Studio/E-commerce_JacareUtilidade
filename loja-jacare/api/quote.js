@@ -25,7 +25,7 @@ async function getUberToken() {
       client_id: clientId,
       client_secret: clientSecret,
       grant_type: "client_credentials",
-      scope: "eats.deliveries",
+      scope: "direct.organizations.deliveries",
     }),
   });
 
