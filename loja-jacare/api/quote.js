@@ -1,5 +1,5 @@
 // loja-jacare/api/quote.js
-// Recebe: { address }
+// Recebe: { address, lat?, lng? }
 // Retorna: { shipping, eta, quote_id, currency, raw }
 
 let cachedToken = null;
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { address } = req.body || {};
+    const { address, lat, lng } = req.body || {};
 
     if (!address || !String(address).trim()) {
       return res.status(400).json({ error: "Endereço é obrigatório" });
@@ -118,8 +118,29 @@ export default async function handler(req, res) {
 
     const token = await getUberToken();
 
-    const destinoGeo = await geocodeAddress(address);
-    const destinoDetalhado = montarEnderecoDetalhado(address, destinoGeo);
+    // Se o frontend já enviou as coordenadas (via Photon autocomplete),
+    // usa direto — sem precisar geocodificar pelo Nominatim
+    let dropoffLat = Number(lat);
+    let dropoffLng = Number(lng);
+    let destinoDetalhado;
+
+    if (!Number.isNaN(dropoffLat) && !Number.isNaN(dropoffLng) && dropoffLat !== 0) {
+      // Coordenadas vieram do frontend — monta o endereço a partir do texto
+      destinoDetalhado = {
+        street_address: [address],
+        city: "Sete Lagoas",
+        state: "MG",
+        zip_code: "",
+        country: "BR",
+      };
+    } else {
+      // Fallback: geocodifica pelo Nominatim
+      const destinoGeo = await geocodeAddress(address);
+      destinoDetalhado = montarEnderecoDetalhado(address, destinoGeo);
+      dropoffLat = Number(destinoGeo.lat);
+      dropoffLng = Number(destinoGeo.lon);
+    }
+
     const origemDetalhada = montarEnderecoDetalhado(storeAddress, {
       address: {
         road: storeAddress,
@@ -139,9 +160,6 @@ export default async function handler(req, res) {
       body.pickup_latitude = storeLat;
       body.pickup_longitude = storeLng;
     }
-
-    const dropoffLat = Number(destinoGeo.lat);
-    const dropoffLng = Number(destinoGeo.lon);
 
     if (!Number.isNaN(dropoffLat) && !Number.isNaN(dropoffLng)) {
       body.dropoff_latitude = dropoffLat;

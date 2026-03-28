@@ -34,15 +34,33 @@ function renderizarBanner(i) {
     }
 }
 
-// --- AUTOCOMPLETE DE ENDEREÇO ---
+// --- AUTOCOMPLETE DE ENDEREÇO (Photon / OpenStreetMap) ---
+// Bounding box restrito a Sete Lagoas - MG
+const BBOX = '-44.35,-19.55,-44.05,-19.35';
+
 let debounceTimer = null;
+let enderecoSelecionado = null; // guarda lat/lng do endereço escolhido
+
+function formatarEnderecoPhoton(props) {
+    const rua    = props.street || props.name || '';
+    const numero = props.housenumber ? `, ${props.housenumber}` : '';
+    const bairro = props.district || props.suburb || props.neighbourhood || '';
+    const cidade = props.city || props.town || props.village || 'Sete Lagoas';
+    const estado = props.state ? props.state.replace('Minas Gerais', 'MG') : 'MG';
+
+    let linha = rua + numero;
+    if (bairro) linha += ` - ${bairro}`;
+    linha += `, ${cidade} - ${estado}`;
+    return linha;
+}
 
 async function buscarSugestoesEndereco(valor) {
     const lista = document.getElementById('lista-sugestoes');
     if (!lista) return;
     clearTimeout(debounceTimer);
+    enderecoSelecionado = null;
 
-    if (!valor || valor.trim().length < 5) {
+    if (!valor || valor.trim().length < 4) {
         lista.style.display = 'none';
         lista.innerHTML = '';
         return;
@@ -50,27 +68,39 @@ async function buscarSugestoesEndereco(valor) {
 
     debounceTimer = setTimeout(async () => {
         try {
-            const resp = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(valor + ', Sete Lagoas, MG')}`,
-                { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'Loja-Jacare/1.0' } }
-            );
-            const resultados = await resp.json();
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(valor)}&lang=pt&limit=6&bbox=${BBOX}`;
+            const resp = await fetch(url);
+            const json = await resp.json();
+            const resultados = json.features || [];
+
+            // Filtra apenas resultados com rua definida
+            const filtrados = resultados.filter(f => {
+                const tipo = f.properties?.type || '';
+                return ['house', 'street', 'locality', 'district', 'city'].includes(tipo)
+                    || f.properties?.street;
+            });
 
             lista.innerHTML = '';
 
-            if (!resultados.length) {
+            if (!filtrados.length) {
                 lista.style.display = 'none';
                 return;
             }
 
-            resultados.forEach(item => {
+            filtrados.forEach(item => {
+                const props = item.properties;
+                const textoFormatado = formatarEnderecoPhoton(props);
+                const [lng, lat] = item.geometry.coordinates;
+
                 const li = document.createElement('li');
-                li.textContent = item.display_name;
-                li.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; border-bottom:1px solid #eee; color:#222;';
-                li.onmouseenter = () => li.style.background = '#f0f0f0';
+                li.textContent = textoFormatado;
+                li.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid #eee; color:#222; line-height:1.4;';
+                li.onmouseenter = () => li.style.background = '#f5f5f5';
                 li.onmouseleave = () => li.style.background = '';
                 li.onclick = () => {
-                    document.getElementById('input-endereco').value = item.display_name;
+                    document.getElementById('input-endereco').value = textoFormatado;
+                    // Salva coordenadas para enviar direto à Uber sem geocodificar novamente
+                    enderecoSelecionado = { texto: textoFormatado, lat, lng };
                     lista.style.display = 'none';
                     lista.innerHTML = '';
                     calcularFrete();
@@ -78,11 +108,12 @@ async function buscarSugestoesEndereco(valor) {
                 lista.appendChild(li);
             });
 
-            lista.style.display = 'block';
+            lista.style.display = filtrados.length ? 'block' : 'none';
         } catch (e) {
+            console.error('Erro no autocomplete:', e);
             lista.style.display = 'none';
         }
-    }, 500);
+    }, 400);
 }
 
 // --- FRETE ---
@@ -104,10 +135,18 @@ async function calcularFrete() {
     }
 
     try {
+        // Envia coordenadas junto se o usuário selecionou uma sugestão,
+        // evitando nova geocodificação no backend
+        const body = { address: endereco };
+        if (enderecoSelecionado?.lat) {
+            body.lat = enderecoSelecionado.lat;
+            body.lng = enderecoSelecionado.lng;
+        }
+
         const response = await fetch('/api/quote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ address: endereco })
+            body: JSON.stringify(body)
         });
 
         const data = await response.json();
@@ -452,7 +491,6 @@ function toggleEndereco() {
         if (avisoHorario) avisoHorario.style.display = 'none';
         if (optDinheiro) optDinheiro.style.display = 'none';
         if (selectPag.value === 'Dinheiro') selectPag.value = 'Pix';
-        setTimeout(() => calcularFrete(), 100);
     } else {
         campoEndereco.style.display = 'none';
         if (avisoHorario) avisoHorario.style.display = 'block';
@@ -477,7 +515,6 @@ function configurarEventosFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega');
 
     if (inputEndereco) {
-        // Autocomplete ao digitar
         inputEndereco.addEventListener('input', (e) => buscarSugestoesEndereco(e.target.value));
     }
 
@@ -486,7 +523,7 @@ function configurarEventosFrete() {
     }
 }
 
-// Fecha a lista de sugestões ao clicar fora
+// Fecha sugestões ao clicar fora
 document.addEventListener('click', (e) => {
     if (!e.target.closest('#campo-endereco')) {
         const lista = document.getElementById('lista-sugestoes');
