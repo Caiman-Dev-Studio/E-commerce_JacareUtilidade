@@ -178,28 +178,54 @@
                                     id="input-numero"
                                     class="form-select"
                                     placeholder="Número"
-                                    autocomplete="address-line2"
+                                    autocomplete="off"
                                 >
                                 <input
                                     type="text"
                                     id="input-bairro"
                                     class="form-select"
                                     placeholder="Bairro"
-                                    autocomplete="address-level3"
+                                    autocomplete="off"
                                 >
                             </div>
 
-                            <input
-                                type="text"
-                                id="input-complemento"
-                                class="form-select"
-                                placeholder="Complemento (apto, bloco, referência...)"
-                                autocomplete="off"
-                                style="margin-top:10px;"
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                                <input
+                                    type="text"
+                                    id="input-complemento"
+                                    class="form-select"
+                                    placeholder="Complemento"
+                                    autocomplete="off"
+                                >
+                                <select id="input-cidade" class="form-select">
+                                    <option value="Sete Lagoas" selected>Sete Lagoas</option>
+                                    <option value="Prudente de Morais">Prudente de Morais</option>
+                                    <option value="Inhaúma">Inhaúma</option>
+                                    <option value="Capim Branco">Capim Branco</option>
+                                    <option value="Matozinhos">Matozinhos</option>
+                                    <option value="Funilândia">Funilândia</option>
+                                    <option value="Cordisburgo">Cordisburgo</option>
+                                    <option value="Paraopeba">Paraopeba</option>
+                                    <option value="Araçaí">Araçaí</option>
+                                    <option value="Cachoeira da Prata">Cachoeira da Prata</option>
+                                </select>
+                            </div>
+
+                            <button
+                                type="button"
+                                id="btn-calcular-frete"
+                                class="add-btn"
+                                style="margin-top:12px; width:100%;"
                             >
+                                🛵 Calcular frete
+                            </button>
+
+                            <div id="frete-status" style="margin-top:8px; font-size:0.85rem; color:#666;">
+                                Frete ainda não calculado.
+                            </div>
 
                             <div style="margin-top:8px; font-size:0.8rem; color:#666;">
-                                Informe rua, número e bairro para a entrega chegar certinho.
+                                Informe rua, número, bairro e cidade. Depois clique em calcular frete.
                             </div>
                         </div>
                     </div>

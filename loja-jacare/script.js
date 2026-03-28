@@ -9,6 +9,7 @@ let valorFreteAtual = 0;
 let bannerAtual = 0;
 let modalQuantidadeAtual = 1;
 let produtoAtualModal = null;
+let freteCalculado = false;
 
 // --- CARREGAMENTO ---
 async function carregarBanners() {
@@ -56,21 +57,37 @@ function extrairRuaPrincipal(item) {
     );
 }
 
+function obterCidadeSelecionada() {
+    return document.getElementById('input-cidade')?.value.trim() || 'Sete Lagoas';
+}
+
 function montarEnderecoCompleto() {
     const rua = document.getElementById('input-endereco')?.value.trim() || '';
     const numero = document.getElementById('input-numero')?.value.trim() || '';
     const bairro = document.getElementById('input-bairro')?.value.trim() || '';
     const complemento = document.getElementById('input-complemento')?.value.trim() || '';
+    const cidade = obterCidadeSelecionada();
 
     let endereco = rua;
 
     if (numero) endereco += `, ${numero}`;
     if (bairro) endereco += `, ${bairro}`;
     if (complemento) endereco += `, ${complemento}`;
-
-    if (endereco) endereco += ', Sete Lagoas - MG';
+    if (cidade) endereco += `, ${cidade} - MG`;
 
     return endereco;
+}
+
+function marcarFreteComoPendente() {
+    freteCalculado = false;
+    valorFreteAtual = 0;
+    atualizarTotalComFrete();
+
+    const status = document.getElementById('frete-status');
+    if (status) {
+        status.innerText = 'Frete ainda não calculado.';
+        status.style.color = '#666';
+    }
 }
 
 async function buscarSugestoesEndereco(valor) {
@@ -79,6 +96,7 @@ async function buscarSugestoesEndereco(valor) {
 
     clearTimeout(debounceTimer);
     enderecoSelecionado = null;
+    marcarFreteComoPendente();
 
     if (!valor || valor.trim().length < 3) {
         lista.style.display = 'none';
@@ -86,12 +104,14 @@ async function buscarSugestoesEndereco(valor) {
         return;
     }
 
+    const cidade = obterCidadeSelecionada();
+
     lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">🔍 Buscando...</li>';
     lista.style.display = 'block';
 
     debounceTimer = setTimeout(async () => {
         try {
-            const query = encodeURIComponent(valor + ', Sete Lagoas, MG');
+            const query = encodeURIComponent(`${valor}, ${cidade}, MG`);
             const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=br&viewbox=${NOM_VIEWBOX}&bounded=0&q=${query}`;
 
             const resp = await fetch(url, {
@@ -116,7 +136,7 @@ async function buscarSugestoesEndereco(valor) {
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div style="font-weight:600; color:#222;">${principal}</div>
-                    <div style="font-size:12px; color:#666; margin-top:2px;">Sete Lagoas - MG</div>
+                    <div style="font-size:12px; color:#666; margin-top:2px;">${cidade} - MG</div>
                 `;
                 li.style.cssText = 'padding:10px 14px; cursor:pointer; border-bottom:1px solid #eee; line-height:1.4;';
                 li.onmouseenter = () => li.style.background = '#f5f5f5';
@@ -133,6 +153,7 @@ async function buscarSugestoesEndereco(valor) {
 
                     lista.style.display = 'none';
                     lista.innerHTML = '';
+                    marcarFreteComoPendente();
                 };
                 lista.appendChild(li);
             });
@@ -149,34 +170,61 @@ async function buscarSugestoesEndereco(valor) {
 // --- FRETE ---
 async function calcularFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega')?.value;
+    const rua = document.getElementById('input-endereco')?.value.trim() || '';
+    const numero = document.getElementById('input-numero')?.value.trim() || '';
+    const bairro = document.getElementById('input-bairro')?.value.trim() || '';
+    const cidade = obterCidadeSelecionada();
     const enderecoCompleto = montarEnderecoCompleto();
+    const status = document.getElementById('frete-status');
 
     if (metodoEntrega !== 'Entrega') {
         valorFreteAtual = 0;
+        freteCalculado = false;
         atualizarTotalComFrete();
         return;
     }
 
-    const rua = document.getElementById('input-endereco')?.value.trim() || '';
-    const numero = document.getElementById('input-numero')?.value.trim() || '';
-
     if (!rua) {
         alert('Informe a rua para calcular o frete.');
-        valorFreteAtual = 0;
-        atualizarTotalComFrete();
         return;
     }
 
     if (!numero) {
         alert('Informe o número da casa para calcular o frete.');
-        valorFreteAtual = 0;
-        atualizarTotalComFrete();
+        return;
+    }
+
+    if (!bairro) {
+        alert('Informe o bairro para calcular o frete.');
+        return;
+    }
+
+    if (!cidade) {
+        alert('Informe a cidade para calcular o frete.');
         return;
     }
 
     try {
+        const btn = document.getElementById('btn-calcular-frete');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Calculando...';
+        }
+
+        if (status) {
+            status.innerText = 'Consultando frete...';
+            status.style.color = '#666';
+        }
+
         const body = {
-            address: enderecoCompleto
+            address: enderecoCompleto,
+            street: rua,
+            number: numero,
+            neighborhood: bairro,
+            city: cidade,
+            state: 'MG',
+            country: 'Brasil',
+            full_address: enderecoCompleto
         };
 
         if (enderecoSelecionado?.lat && enderecoSelecionado?.lng) {
@@ -194,28 +242,60 @@ async function calcularFrete() {
 
         if (!response.ok) {
             console.error('Erro ao calcular frete:', data);
-            alert(data?.error || 'Erro ao calcular o frete.');
             valorFreteAtual = 0;
+            freteCalculado = false;
             atualizarTotalComFrete();
+
+            if (status) {
+                status.innerText = 'Falha ao calcular frete.';
+                status.style.color = '#c62828';
+            }
+
+            alert(data?.error || 'Erro ao calcular o frete.');
             return;
         }
 
         if (typeof data.shipping === 'number') {
             valorFreteAtual = data.shipping;
+            freteCalculado = true;
             atualizarTotalComFrete();
 
-            const etaTexto = data.eta ? ` | ETA: ${data.eta}` : '';
-            alert(`🛵 Frete: R$ ${data.shipping.toFixed(2).replace('.', ',')}${etaTexto}`);
+            if (status) {
+                status.innerText = `Frete calculado: R$ ${data.shipping.toFixed(2).replace('.', ',')}${data.eta ? ` | ETA: ${data.eta}` : ''}`;
+                status.style.color = 'var(--green)';
+            }
+
+            alert(`🛵 Frete: R$ ${data.shipping.toFixed(2).replace('.', ',')}${data.eta ? ` | ETA: ${data.eta}` : ''}`);
         } else {
             valorFreteAtual = 0;
+            freteCalculado = false;
             atualizarTotalComFrete();
+
+            if (status) {
+                status.innerText = 'Não foi possível calcular o frete.';
+                status.style.color = '#c62828';
+            }
+
             alert('Não foi possível calcular o frete.');
         }
     } catch (error) {
         console.error('Erro na chamada /api/quote:', error);
         valorFreteAtual = 0;
+        freteCalculado = false;
         atualizarTotalComFrete();
+
+        if (status) {
+            status.innerText = 'Erro ao consultar frete.';
+            status.style.color = '#c62828';
+        }
+
         alert('Erro ao consultar o frete.');
+    } finally {
+        const btn = document.getElementById('btn-calcular-frete');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = '🛵 Calcular frete';
+        }
     }
 }
 
@@ -475,6 +555,8 @@ async function finalizarPedido() {
     if (entrega === 'Entrega') {
         const rua = document.getElementById('input-endereco')?.value.trim() || '';
         const numero = document.getElementById('input-numero')?.value.trim() || '';
+        const bairro = document.getElementById('input-bairro')?.value.trim() || '';
+        const cidade = obterCidadeSelecionada();
 
         if (!rua) {
             alert('Informe a rua para entrega.');
@@ -485,10 +567,21 @@ async function finalizarPedido() {
             alert('Informe o número da casa para entrega.');
             return;
         }
-    }
 
-    if (entrega === 'Entrega' && valorFreteAtual === 0) {
-        await calcularFrete();
+        if (!bairro) {
+            alert('Informe o bairro para entrega.');
+            return;
+        }
+
+        if (!cidade) {
+            alert('Informe a cidade para entrega.');
+            return;
+        }
+
+        if (!freteCalculado) {
+            alert('Clique em "Calcular frete" antes de finalizar o pedido.');
+            return;
+        }
     }
 
     const itensAgrupados = {};
@@ -573,11 +666,13 @@ function toggleEndereco() {
         if (avisoHorario) avisoHorario.style.display = 'none';
         if (optDinheiro) optDinheiro.style.display = 'none';
         if (selectPag.value === 'Dinheiro') selectPag.value = 'Pix';
+        marcarFreteComoPendente();
     } else {
         campoEndereco.style.display = 'none';
         if (avisoHorario) avisoHorario.style.display = 'block';
         if (optDinheiro) optDinheiro.style.display = 'block';
         valorFreteAtual = 0;
+        freteCalculado = false;
         atualizarTotalComFrete();
     }
 }
@@ -603,38 +698,26 @@ function configurarEventosFrete() {
     const inputNumero = document.getElementById('input-numero');
     const inputBairro = document.getElementById('input-bairro');
     const inputComplemento = document.getElementById('input-complemento');
+    const inputCidade = document.getElementById('input-cidade');
     const metodoEntrega = document.getElementById('metodo-entrega');
+    const btnCalcularFrete = document.getElementById('btn-calcular-frete');
 
     if (inputEndereco) {
         inputEndereco.addEventListener('input', (e) => buscarSugestoesEndereco(e.target.value));
+        inputEndereco.addEventListener('input', marcarFreteComoPendente);
     }
 
-    if (inputNumero) {
-        inputNumero.addEventListener('blur', () => {
-            if (document.getElementById('metodo-entrega')?.value === 'Entrega') {
-                calcularFrete();
-            }
-        });
-    }
-
-    if (inputBairro) {
-        inputBairro.addEventListener('blur', () => {
-            if (document.getElementById('metodo-entrega')?.value === 'Entrega') {
-                calcularFrete();
-            }
-        });
-    }
-
-    if (inputComplemento) {
-        inputComplemento.addEventListener('blur', () => {
-            if (document.getElementById('metodo-entrega')?.value === 'Entrega') {
-                calcularFrete();
-            }
-        });
-    }
+    if (inputNumero) inputNumero.addEventListener('input', marcarFreteComoPendente);
+    if (inputBairro) inputBairro.addEventListener('input', marcarFreteComoPendente);
+    if (inputComplemento) inputComplemento.addEventListener('input', marcarFreteComoPendente);
+    if (inputCidade) inputCidade.addEventListener('change', marcarFreteComoPendente);
 
     if (metodoEntrega) {
         metodoEntrega.addEventListener('change', toggleEndereco);
+    }
+
+    if (btnCalcularFrete) {
+        btnCalcularFrete.addEventListener('click', calcularFrete);
     }
 }
 
