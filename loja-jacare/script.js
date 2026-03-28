@@ -56,11 +56,21 @@ function extrairRuaPrincipal(item) {
     );
 }
 
-function formatarEnderecoLimpo(item) {
-    const a = item.address || {};
-    const rua = extrairRuaPrincipal(item);
-    const numero = a.house_number ? `, ${a.house_number}` : '';
-    return `${rua}${numero}, Sete Lagoas - MG`;
+function montarEnderecoCompleto() {
+    const rua = document.getElementById('input-endereco')?.value.trim() || '';
+    const numero = document.getElementById('input-numero')?.value.trim() || '';
+    const bairro = document.getElementById('input-bairro')?.value.trim() || '';
+    const complemento = document.getElementById('input-complemento')?.value.trim() || '';
+
+    let endereco = rua;
+
+    if (numero) endereco += `, ${numero}`;
+    if (bairro) endereco += `, ${bairro}`;
+    if (complemento) endereco += `, ${complemento}`;
+
+    if (endereco) endereco += ', Sete Lagoas - MG';
+
+    return endereco;
 }
 
 async function buscarSugestoesEndereco(valor) {
@@ -102,7 +112,6 @@ async function buscarSugestoesEndereco(valor) {
 
             resultados.forEach(item => {
                 const principal = extrairRuaPrincipal(item);
-                const textoFormatado = formatarEnderecoLimpo(item);
 
                 const li = document.createElement('li');
                 li.innerHTML = `
@@ -113,15 +122,17 @@ async function buscarSugestoesEndereco(valor) {
                 li.onmouseenter = () => li.style.background = '#f5f5f5';
                 li.onmouseleave = () => li.style.background = '';
                 li.onclick = () => {
-                    document.getElementById('input-endereco').value = textoFormatado;
+                    const inputRua = document.getElementById('input-endereco');
+                    if (inputRua) inputRua.value = principal;
+
                     enderecoSelecionado = {
-                        texto: textoFormatado,
+                        texto: principal,
                         lat: Number(item.lat),
                         lng: Number(item.lon)
                     };
+
                     lista.style.display = 'none';
                     lista.innerHTML = '';
-                    calcularFrete();
                 };
                 lista.appendChild(li);
             });
@@ -138,8 +149,7 @@ async function buscarSugestoesEndereco(valor) {
 // --- FRETE ---
 async function calcularFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega')?.value;
-    const enderecoInput = document.getElementById('input-endereco');
-    const endereco = enderecoInput ? enderecoInput.value.trim() : '';
+    const enderecoCompleto = montarEnderecoCompleto();
 
     if (metodoEntrega !== 'Entrega') {
         valorFreteAtual = 0;
@@ -147,19 +157,31 @@ async function calcularFrete() {
         return;
     }
 
-    if (!endereco) {
+    const rua = document.getElementById('input-endereco')?.value.trim() || '';
+    const numero = document.getElementById('input-numero')?.value.trim() || '';
+
+    if (!rua) {
+        alert('Informe a rua para calcular o frete.');
+        valorFreteAtual = 0;
+        atualizarTotalComFrete();
+        return;
+    }
+
+    if (!numero) {
+        alert('Informe o número da casa para calcular o frete.');
         valorFreteAtual = 0;
         atualizarTotalComFrete();
         return;
     }
 
     try {
-        const body = { address: endereco };
+        const body = {
+            address: enderecoCompleto
+        };
 
-        if (enderecoSelecionado?.lat) {
+        if (enderecoSelecionado?.lat && enderecoSelecionado?.lng) {
             body.lat = enderecoSelecionado.lat;
             body.lng = enderecoSelecionado.lng;
-            body.full_address = enderecoSelecionado.texto;
         }
 
         const response = await fetch('/api/quote', {
@@ -447,12 +469,22 @@ function removerDoCarrinho(index) {
 async function finalizarPedido() {
     const pag = document.getElementById('metodo-pagamento').value;
     const entrega = document.getElementById('metodo-entrega').value;
-    const endereco = document.getElementById('input-endereco').value.trim();
+    const enderecoCompleto = montarEnderecoCompleto();
     const codPedido = 'JAC-' + Math.floor(1000 + Math.random() * 9000);
 
-    if (entrega === 'Entrega' && !endereco) {
-        alert('Informe o endereço para entrega.');
-        return;
+    if (entrega === 'Entrega') {
+        const rua = document.getElementById('input-endereco')?.value.trim() || '';
+        const numero = document.getElementById('input-numero')?.value.trim() || '';
+
+        if (!rua) {
+            alert('Informe a rua para entrega.');
+            return;
+        }
+
+        if (!numero) {
+            alert('Informe o número da casa para entrega.');
+            return;
+        }
     }
 
     if (entrega === 'Entrega' && valorFreteAtual === 0) {
@@ -483,7 +515,7 @@ async function finalizarPedido() {
             {
                 code: codPedido,
                 itens: itensAgrupados,
-                endereco: entrega === 'Entrega' ? endereco : null,
+                endereco: entrega === 'Entrega' ? enderecoCompleto : null,
                 frete: valorFreteAtual,
                 total: totalFinal,
                 status: 'PENDENTE',
@@ -516,7 +548,7 @@ async function finalizarPedido() {
     msg += `*TIPO:* ${entrega}\n`;
 
     if (entrega === 'Entrega') {
-        msg += `*ENDEREÇO:* ${endereco.toUpperCase()}\n`;
+        msg += `*ENDEREÇO:* ${enderecoCompleto.toUpperCase()}\n`;
     }
 
     msg += '\nÉ um sucesso!\n\n';
@@ -568,10 +600,37 @@ function compartilharProduto() {
 
 function configurarEventosFrete() {
     const inputEndereco = document.getElementById('input-endereco');
+    const inputNumero = document.getElementById('input-numero');
+    const inputBairro = document.getElementById('input-bairro');
+    const inputComplemento = document.getElementById('input-complemento');
     const metodoEntrega = document.getElementById('metodo-entrega');
 
     if (inputEndereco) {
         inputEndereco.addEventListener('input', (e) => buscarSugestoesEndereco(e.target.value));
+    }
+
+    if (inputNumero) {
+        inputNumero.addEventListener('blur', () => {
+            if (document.getElementById('metodo-entrega')?.value === 'Entrega') {
+                calcularFrete();
+            }
+        });
+    }
+
+    if (inputBairro) {
+        inputBairro.addEventListener('blur', () => {
+            if (document.getElementById('metodo-entrega')?.value === 'Entrega') {
+                calcularFrete();
+            }
+        });
+    }
+
+    if (inputComplemento) {
+        inputComplemento.addEventListener('blur', () => {
+            if (document.getElementById('metodo-entrega')?.value === 'Entrega') {
+                calcularFrete();
+            }
+        });
     }
 
     if (metodoEntrega) {

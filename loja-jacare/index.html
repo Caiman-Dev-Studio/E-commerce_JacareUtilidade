@@ -94,6 +94,7 @@
             <span class="close-modal" onclick="fecharModal()">&times;</span>
             <div class="modal-body">
                 <h2 id="modal-titulo" style="margin-bottom: 15px; font-family: 'Montserrat', sans-serif;"></h2>
+
                 <div id="modal-area-venda">
                     <div class="image-container-branded">
                         <div id="modal-galeria"></div>
@@ -111,6 +112,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div id="modal-area-escolha" style="display:none; text-align:center;">
                     <div style="font-size: 3.5rem; margin-bottom: 10px;">✅</div>
                     <h2 style="color:var(--green);">Adicionado!</h2>
@@ -120,8 +122,10 @@
                         <button class="add-btn" onclick="abrirCarrinho()">🚀 Fechar o Pedido</button>
                     </div>
                 </div>
+
                 <div id="modal-area-checkout" style="display:none;">
                     <div id="modal-lista-carrinho" class="cart-items-list"></div>
+
                     <div class="checkout-box">
                         <label>FORMA DE PAGAMENTO:</label>
                         <select id="metodo-pagamento" class="form-select">
@@ -129,46 +133,82 @@
                             <option value="Cartão">💳 Cartão</option>
                             <option value="Dinheiro">💵 Dinheiro</option>
                         </select>
+
                         <label>ENTREGA OU RETIRADA:</label>
                         <select id="metodo-entrega" class="form-select" onchange="toggleEndereco()">
                             <option value="Retirada">🏪 Retirar na Loja</option>
                             <option value="Entrega">🛵 Entrega em Sete Lagoas</option>
                         </select>
+
                         <div id="aviso-horario" style="margin-top: 10px; color: var(--green); font-size: 0.85rem; font-weight: bold;">
                             🕒 Retirada permitida das 10:00 às 16:30 do mesmo dia.
                         </div>
-                        <!-- Campo de endereço com autocomplete -->
-                        <div id="campo-endereco" style="display:none; margin-top: 10px; position: relative;">
+
+                        <div id="campo-endereco" style="display:none; margin-top: 12px;">
+                            <div style="position: relative;">
+                                <input
+                                    type="text"
+                                    id="input-endereco"
+                                    class="form-select"
+                                    placeholder="Rua"
+                                    autocomplete="off"
+                                >
+                                <ul id="lista-sugestoes" style="
+                                    display: none;
+                                    position: absolute;
+                                    top: 100%;
+                                    left: 0;
+                                    right: 0;
+                                    background: #fff;
+                                    border: 1px solid #ccc;
+                                    border-radius: 8px;
+                                    list-style: none;
+                                    margin: 4px 0 0;
+                                    padding: 0;
+                                    z-index: 9999;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                    max-height: 220px;
+                                    overflow-y: auto;
+                                "></ul>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+                                <input
+                                    type="text"
+                                    id="input-numero"
+                                    class="form-select"
+                                    placeholder="Número"
+                                    autocomplete="address-line2"
+                                >
+                                <input
+                                    type="text"
+                                    id="input-bairro"
+                                    class="form-select"
+                                    placeholder="Bairro"
+                                    autocomplete="address-level3"
+                                >
+                            </div>
+
                             <input
                                 type="text"
-                                id="input-endereco"
+                                id="input-complemento"
                                 class="form-select"
-                                placeholder="Endereço completo (Rua, Nº, Bairro)"
+                                placeholder="Complemento (apto, bloco, referência...)"
                                 autocomplete="off"
+                                style="margin-top:10px;"
                             >
-                            <ul id="lista-sugestoes" style="
-                                display: none;
-                                position: absolute;
-                                top: 100%;
-                                left: 0;
-                                right: 0;
-                                background: #fff;
-                                border: 1px solid #ccc;
-                                border-radius: 8px;
-                                list-style: none;
-                                margin: 4px 0 0;
-                                padding: 0;
-                                z-index: 9999;
-                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                                max-height: 220px;
-                                overflow-y: auto;
-                            "></ul>
+
+                            <div style="margin-top:8px; font-size:0.8rem; color:#666;">
+                                Informe rua, número e bairro para a entrega chegar certinho.
+                            </div>
                         </div>
                     </div>
                 </div>
+
                 <div id="modal-footer-preco" class="checkout-total">
                     <span id="label-total">Total</span>: <span id="resumo-total-geral">R$ 0,00</span>
                 </div>
+
                 <button id="modal-btn-acao" class="add-btn"></button>
             </div>
         </div>
@@ -191,6 +231,7 @@
             <p>© 2026 Jacaré Utilidades - É um Sucesso!</p>
         </div>
     </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
