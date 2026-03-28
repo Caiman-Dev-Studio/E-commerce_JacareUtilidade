@@ -34,19 +34,20 @@ function renderizarBanner(i) {
     }
 }
 
-// --- AUTOCOMPLETE DE ENDEREÇO (Photon / OpenStreetMap) ---
-// Bounding box restrito a Sete Lagoas - MG
-const BBOX = '-44.35,-19.55,-44.05,-19.35';
+// --- AUTOCOMPLETE DE ENDEREÇO (Nominatim com bias para Sete Lagoas) ---
+// Usa Nominatim com viewbox centrado em Sete Lagoas — sem bbox problemático
+const NOM_VIEWBOX = '-44.35,-19.35,-44.05,-19.55'; // minLon,minLat,maxLon,maxLat
 
 let debounceTimer = null;
 let enderecoSelecionado = null; // guarda lat/lng do endereço escolhido
 
-function formatarEnderecoPhoton(props) {
-    const rua    = props.street || props.name || '';
-    const numero = props.housenumber ? `, ${props.housenumber}` : '';
-    const bairro = props.district || props.suburb || props.neighbourhood || '';
-    const cidade = props.city || props.town || props.village || 'Sete Lagoas';
-    const estado = props.state ? props.state.replace('Minas Gerais', 'MG') : 'MG';
+function formatarEnderecoNominatim(item) {
+    const a = item.address || {};
+    const rua    = a.road || a.pedestrian || a.cycleway || item.display_name.split(',')[0] || '';
+    const numero = a.house_number ? `, ${a.house_number}` : '';
+    const bairro = a.suburb || a.neighbourhood || a.district || '';
+    const cidade = a.city || a.town || a.village || 'Sete Lagoas';
+    const estado = a.state ? a.state.replace('Minas Gerais', 'MG') : 'MG';
 
     let linha = rua + numero;
     if (bairro) linha += ` - ${bairro}`;
@@ -60,37 +61,36 @@ async function buscarSugestoesEndereco(valor) {
     clearTimeout(debounceTimer);
     enderecoSelecionado = null;
 
-    if (!valor || valor.trim().length < 4) {
+    if (!valor || valor.trim().length < 3) {
         lista.style.display = 'none';
         lista.innerHTML = '';
         return;
     }
 
+    // Mostra feedback de carregando imediatamente
+    lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">🔍 Buscando...</li>';
+    lista.style.display = 'block';
+
     debounceTimer = setTimeout(async () => {
         try {
-            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(valor)}&lang=pt&limit=6&bbox=${BBOX}`;
-            const resp = await fetch(url);
-            const json = await resp.json();
-            const resultados = json.features || [];
+            const query = encodeURIComponent(valor + ', Sete Lagoas, MG');
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=br&viewbox=${NOM_VIEWBOX}&bounded=0&q=${query}`;
 
-            // Filtra apenas resultados com rua definida
-            const filtrados = resultados.filter(f => {
-                const tipo = f.properties?.type || '';
-                return ['house', 'street', 'locality', 'district', 'city'].includes(tipo)
-                    || f.properties?.street;
+            const resp = await fetch(url, {
+                headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'Loja-Jacare/1.0' }
             });
+            const resultados = await resp.json();
 
             lista.innerHTML = '';
 
-            if (!filtrados.length) {
-                lista.style.display = 'none';
+            if (!resultados.length) {
+                lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">Nenhum endereço encontrado</li>';
+                lista.style.display = 'block';
                 return;
             }
 
-            filtrados.forEach(item => {
-                const props = item.properties;
-                const textoFormatado = formatarEnderecoPhoton(props);
-                const [lng, lat] = item.geometry.coordinates;
+            resultados.forEach(item => {
+                const textoFormatado = formatarEnderecoNominatim(item);
 
                 const li = document.createElement('li');
                 li.textContent = textoFormatado;
@@ -99,8 +99,7 @@ async function buscarSugestoesEndereco(valor) {
                 li.onmouseleave = () => li.style.background = '';
                 li.onclick = () => {
                     document.getElementById('input-endereco').value = textoFormatado;
-                    // Salva coordenadas para enviar direto à Uber sem geocodificar novamente
-                    enderecoSelecionado = { texto: textoFormatado, lat, lng };
+                    enderecoSelecionado = { texto: textoFormatado, lat: Number(item.lat), lng: Number(item.lon) };
                     lista.style.display = 'none';
                     lista.innerHTML = '';
                     calcularFrete();
@@ -108,13 +107,12 @@ async function buscarSugestoesEndereco(valor) {
                 lista.appendChild(li);
             });
 
-            lista.style.display = filtrados.length ? 'block' : 'none';
+            lista.style.display = 'block';
         } catch (e) {
             console.error('Erro no autocomplete:', e);
-            lista.style.display = 'none';
+            lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">Erro ao buscar endereço</li>';
         }
-    }, 400);
-}
+    }, 300);
 
 // --- FRETE ---
 async function calcularFrete() {
@@ -537,3 +535,4 @@ carregarBanners();
 document.addEventListener('DOMContentLoaded', () => {
     configurarEventosFrete();
 });
+}
