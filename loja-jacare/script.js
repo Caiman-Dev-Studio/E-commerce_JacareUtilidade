@@ -113,6 +113,7 @@ async function buscarSugestoesEndereco(valor) {
             lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">Erro ao buscar endereço</li>';
         }
     }, 300);
+}
 
 // --- FRETE ---
 async function calcularFrete() {
@@ -535,4 +536,3 @@ carregarBanners();
 document.addEventListener('DOMContentLoaded', () => {
     configurarEventosFrete();
 });
-}
