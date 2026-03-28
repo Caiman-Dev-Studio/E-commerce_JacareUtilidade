@@ -137,8 +137,32 @@
                         <div id="aviso-horario" style="margin-top: 10px; color: var(--green); font-size: 0.85rem; font-weight: bold;">
                             🕒 Retirada permitida das 10:00 às 16:30 do mesmo dia.
                         </div>
-                        <div id="campo-endereco" style="display:none; margin-top: 10px;">
-                            <textarea id="input-endereco" class="form-select" placeholder="Endereço completo (Rua, Nº, Bairro)" onblur="calcularFrete()"></textarea>
+                        <!-- Campo de endereço com autocomplete -->
+                        <div id="campo-endereco" style="display:none; margin-top: 10px; position: relative;">
+                            <input
+                                type="text"
+                                id="input-endereco"
+                                class="form-select"
+                                placeholder="Endereço completo (Rua, Nº, Bairro)"
+                                autocomplete="off"
+                            >
+                            <ul id="lista-sugestoes" style="
+                                display: none;
+                                position: absolute;
+                                top: 100%;
+                                left: 0;
+                                right: 0;
+                                background: #fff;
+                                border: 1px solid #ccc;
+                                border-radius: 8px;
+                                list-style: none;
+                                margin: 4px 0 0;
+                                padding: 0;
+                                z-index: 9999;
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                max-height: 220px;
+                                overflow-y: auto;
+                            "></ul>
                         </div>
                     </div>
                 </div>
