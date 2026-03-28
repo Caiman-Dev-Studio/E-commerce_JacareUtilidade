@@ -40,23 +40,6 @@ function renderizarBanner(i) {
     }
 }
 
-// --- AUTOCOMPLETE DE ENDEREÇO ---
-const NOM_VIEWBOX = '-44.35,-19.35,-44.05,-19.55';
-
-let debounceTimer = null;
-let enderecoSelecionado = null;
-
-function extrairRuaPrincipal(item) {
-    const a = item.address || {};
-    return (
-        a.road ||
-        a.pedestrian ||
-        a.cycleway ||
-        (item.display_name || '').split(',')[0]?.trim() ||
-        ''
-    );
-}
-
 function obterCidadeSelecionada() {
     return document.getElementById('input-cidade')?.value.trim() || 'Sete Lagoas';
 }
@@ -88,83 +71,6 @@ function marcarFreteComoPendente() {
         status.innerText = 'Frete ainda não calculado.';
         status.style.color = '#666';
     }
-}
-
-async function buscarSugestoesEndereco(valor) {
-    const lista = document.getElementById('lista-sugestoes');
-    if (!lista) return;
-
-    clearTimeout(debounceTimer);
-    enderecoSelecionado = null;
-    marcarFreteComoPendente();
-
-    if (!valor || valor.trim().length < 3) {
-        lista.style.display = 'none';
-        lista.innerHTML = '';
-        return;
-    }
-
-    const cidade = obterCidadeSelecionada();
-
-    lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">🔍 Buscando...</li>';
-    lista.style.display = 'block';
-
-    debounceTimer = setTimeout(async () => {
-        try {
-            const query = encodeURIComponent(`${valor}, ${cidade}, MG`);
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=br&viewbox=${NOM_VIEWBOX}&bounded=0&q=${query}`;
-
-            const resp = await fetch(url, {
-                headers: {
-                    'Accept-Language': 'pt-BR',
-                    'User-Agent': 'Loja-Jacare/1.0'
-                }
-            });
-
-            const resultados = await resp.json();
-            lista.innerHTML = '';
-
-            if (!resultados.length) {
-                lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">Nenhum endereço encontrado</li>';
-                lista.style.display = 'block';
-                return;
-            }
-
-            resultados.forEach(item => {
-                const principal = extrairRuaPrincipal(item);
-
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div style="font-weight:600; color:#222;">${principal}</div>
-                    <div style="font-size:12px; color:#666; margin-top:2px;">${cidade} - MG</div>
-                `;
-                li.style.cssText = 'padding:10px 14px; cursor:pointer; border-bottom:1px solid #eee; line-height:1.4;';
-                li.onmouseenter = () => li.style.background = '#f5f5f5';
-                li.onmouseleave = () => li.style.background = '';
-                li.onclick = () => {
-                    const inputRua = document.getElementById('input-endereco');
-                    if (inputRua) inputRua.value = principal;
-
-                    enderecoSelecionado = {
-                        texto: principal,
-                        lat: Number(item.lat),
-                        lng: Number(item.lon)
-                    };
-
-                    lista.style.display = 'none';
-                    lista.innerHTML = '';
-                    marcarFreteComoPendente();
-                };
-                lista.appendChild(li);
-            });
-
-            lista.style.display = 'block';
-        } catch (e) {
-            console.error('Erro no autocomplete:', e);
-            lista.innerHTML = '<li style="padding:10px 14px; color:#999; font-size:13px;">Erro ao buscar endereço</li>';
-            lista.style.display = 'block';
-        }
-    }, 300);
 }
 
 // --- FRETE ---
@@ -216,6 +122,24 @@ async function calcularFrete() {
             status.style.color = '#666';
         }
 
+        const geoResponse = await fetch(`/api/geocode?address=${encodeURIComponent(enderecoCompleto)}`);
+        const geoData = await geoResponse.json();
+
+        if (!geoResponse.ok || geoData.lat == null || geoData.lng == null) {
+            console.error('Erro ao geocodificar endereço:', geoData);
+            valorFreteAtual = 0;
+            freteCalculado = false;
+            atualizarTotalComFrete();
+
+            if (status) {
+                status.innerText = geoData?.error || 'Não foi possível localizar o endereço.';
+                status.style.color = '#c62828';
+            }
+
+            alert(geoData?.error || 'Não foi possível localizar o endereço.');
+            return;
+        }
+
         const body = {
             address: enderecoCompleto,
             street: rua,
@@ -224,13 +148,10 @@ async function calcularFrete() {
             city: cidade,
             state: 'MG',
             country: 'Brasil',
-            full_address: enderecoCompleto
+            full_address: enderecoCompleto,
+            dropoff_lat: Number(geoData.lat),
+            dropoff_lng: Number(geoData.lng)
         };
-
-        if (enderecoSelecionado?.lat && enderecoSelecionado?.lng) {
-            body.lat = enderecoSelecionado.lat;
-            body.lng = enderecoSelecionado.lng;
-        }
 
         const response = await fetch('/api/quote', {
             method: 'POST',
@@ -279,7 +200,7 @@ async function calcularFrete() {
             alert('Não foi possível calcular o frete.');
         }
     } catch (error) {
-        console.error('Erro na chamada /api/quote:', error);
+        console.error('Erro na chamada de frete:', error);
         valorFreteAtual = 0;
         freteCalculado = false;
         atualizarTotalComFrete();
@@ -702,11 +623,7 @@ function configurarEventosFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega');
     const btnCalcularFrete = document.getElementById('btn-calcular-frete');
 
-    if (inputEndereco) {
-        inputEndereco.addEventListener('input', (e) => buscarSugestoesEndereco(e.target.value));
-        inputEndereco.addEventListener('input', marcarFreteComoPendente);
-    }
-
+    if (inputEndereco) inputEndereco.addEventListener('input', marcarFreteComoPendente);
     if (inputNumero) inputNumero.addEventListener('input', marcarFreteComoPendente);
     if (inputBairro) inputBairro.addEventListener('input', marcarFreteComoPendente);
     if (inputComplemento) inputComplemento.addEventListener('input', marcarFreteComoPendente);
@@ -720,13 +637,6 @@ function configurarEventosFrete() {
         btnCalcularFrete.addEventListener('click', calcularFrete);
     }
 }
-
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('#campo-endereco')) {
-        const lista = document.getElementById('lista-sugestoes');
-        if (lista) lista.style.display = 'none';
-    }
-});
 
 carregarProdutos();
 carregarBanners();
