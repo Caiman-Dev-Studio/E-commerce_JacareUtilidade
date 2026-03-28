@@ -45,26 +45,22 @@ const NOM_VIEWBOX = '-44.35,-19.35,-44.05,-19.55';
 let debounceTimer = null;
 let enderecoSelecionado = null;
 
-function formatarEnderecoNominatim(item) {
-    if (!item || !item.display_name) return '';
-
-    const partes = item.display_name
-        .split(',')
-        .map(p => p.trim())
-        .filter(Boolean);
-
-    const limpa = partes.filter(p =>
-        !/^minas gerais$/i.test(p) &&
-        !/^brasil$/i.test(p) &&
-        !/^brazil$/i.test(p) &&
-        !/^\d{5}-?\d{3}$/.test(p)
+function extrairRuaPrincipal(item) {
+    const a = item.address || {};
+    return (
+        a.road ||
+        a.pedestrian ||
+        a.cycleway ||
+        (item.display_name || '').split(',')[0]?.trim() ||
+        ''
     );
+}
 
-    const resultado = limpa.slice(0, 4).join(', ');
-
-    return resultado.includes('Sete Lagoas')
-        ? resultado + ' - MG'
-        : resultado + ', Sete Lagoas - MG';
+function formatarEnderecoLimpo(item) {
+    const a = item.address || {};
+    const rua = extrairRuaPrincipal(item);
+    const numero = a.house_number ? `, ${a.house_number}` : '';
+    return `${rua}${numero}, Sete Lagoas - MG`;
 }
 
 async function buscarSugestoesEndereco(valor) {
@@ -105,19 +101,19 @@ async function buscarSugestoesEndereco(valor) {
             }
 
             resultados.forEach(item => {
-                const textoFormatado = formatarEnderecoNominatim(item);
-                const principal = (item.display_name || '').split(',')[0]?.trim() || textoFormatado;
+                const principal = extrairRuaPrincipal(item);
+                const textoFormatado = formatarEnderecoLimpo(item);
 
                 const li = document.createElement('li');
                 li.innerHTML = `
                     <div style="font-weight:600; color:#222;">${principal}</div>
-                    <div style="font-size:12px; color:#666; margin-top:2px;">${textoFormatado}</div>
+                    <div style="font-size:12px; color:#666; margin-top:2px;">Sete Lagoas - MG</div>
                 `;
                 li.style.cssText = 'padding:10px 14px; cursor:pointer; border-bottom:1px solid #eee; line-height:1.4;';
                 li.onmouseenter = () => li.style.background = '#f5f5f5';
                 li.onmouseleave = () => li.style.background = '';
                 li.onclick = () => {
-                    document.getElementById('input-endereco').value = principal;
+                    document.getElementById('input-endereco').value = textoFormatado;
                     enderecoSelecionado = {
                         texto: textoFormatado,
                         lat: Number(item.lat),
