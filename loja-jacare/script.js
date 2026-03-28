@@ -34,6 +34,58 @@ function renderizarBanner(i) {
     }
 }
 
+// --- AUTOCOMPLETE DE ENDEREÇO ---
+let debounceTimer = null;
+
+async function buscarSugestoesEndereco(valor) {
+    const lista = document.getElementById('lista-sugestoes');
+    if (!lista) return;
+    clearTimeout(debounceTimer);
+
+    if (!valor || valor.trim().length < 5) {
+        lista.style.display = 'none';
+        lista.innerHTML = '';
+        return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+        try {
+            const resp = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(valor + ', Sete Lagoas, MG')}`,
+                { headers: { 'Accept-Language': 'pt-BR', 'User-Agent': 'Loja-Jacare/1.0' } }
+            );
+            const resultados = await resp.json();
+
+            lista.innerHTML = '';
+
+            if (!resultados.length) {
+                lista.style.display = 'none';
+                return;
+            }
+
+            resultados.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item.display_name;
+                li.style.cssText = 'padding:10px 14px; cursor:pointer; font-size:14px; border-bottom:1px solid #eee; color:#222;';
+                li.onmouseenter = () => li.style.background = '#f0f0f0';
+                li.onmouseleave = () => li.style.background = '';
+                li.onclick = () => {
+                    document.getElementById('input-endereco').value = item.display_name;
+                    lista.style.display = 'none';
+                    lista.innerHTML = '';
+                    calcularFrete();
+                };
+                lista.appendChild(li);
+            });
+
+            lista.style.display = 'block';
+        } catch (e) {
+            lista.style.display = 'none';
+        }
+    }, 500);
+}
+
+// --- FRETE ---
 async function calcularFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega')?.value;
     const enderecoInput = document.getElementById('input-endereco');
@@ -425,14 +477,22 @@ function configurarEventosFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega');
 
     if (inputEndereco) {
-        inputEndereco.addEventListener('blur', calcularFrete);
-        inputEndereco.addEventListener('change', calcularFrete);
+        // Autocomplete ao digitar
+        inputEndereco.addEventListener('input', (e) => buscarSugestoesEndereco(e.target.value));
     }
 
     if (metodoEntrega) {
         metodoEntrega.addEventListener('change', toggleEndereco);
     }
 }
+
+// Fecha a lista de sugestões ao clicar fora
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#campo-endereco')) {
+        const lista = document.getElementById('lista-sugestoes');
+        if (lista) lista.style.display = 'none';
+    }
+});
 
 carregarProdutos();
 carregarBanners();
