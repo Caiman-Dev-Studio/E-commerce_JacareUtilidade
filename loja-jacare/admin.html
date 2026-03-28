@@ -234,15 +234,25 @@
 <body>
 
 <script>
-  function hasAdminSession() {
-    return document.cookie.split(';').some(cookie =>
-      cookie.trim().startsWith('jacare_admin_session=')
-    );
+  async function checkAdminSession() {
+    try {
+      const response = await fetch('/api/admin-session', {
+        method: 'GET',
+        credentials: 'same-origin'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        window.location.href = '/funcionarios.html';
+        return;
+      }
+    } catch (error) {
+      window.location.href = '/funcionarios.html';
+    }
   }
 
-  if (!hasAdminSession()) {
-    window.location.href = '/funcionarios.html';
-  }
+  checkAdminSession();
 </script>
 
 <div class="topbar">
