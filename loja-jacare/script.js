@@ -11,6 +11,10 @@ let modalQuantidadeAtual = 1;
 let produtoAtualModal = null;
 let freteCalculado = false;
 
+function quantidadeNoCarrinho(produtoId) {
+    return carrinho.filter(item => item.id == produtoId).length
+}
+
 // --- CARREGAMENTO ---
 async function carregarBanners() {
     const { data, error } = await supabaseClient
@@ -385,24 +389,33 @@ function atualizarModalUI() {
 
 function ajustarQtdModal(delta) {
     const novaQtd = modalQuantidadeAtual + delta;
-
     if (novaQtd < 1) return;
+    if (produtoAtualModal) {
+        const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal.id);
+        const estoqueDisponivel = produtoAtualModal.estoque - jaNoCarrinho;
 
-    if (produtoAtualModal && novaQtd > produtoAtualModal.estoque) {
-        alert(`🐊 Opa! Só temos ${produtoAtualModal.estoque} unidades em estoque.`);
-        return;
+        if (novaQtd > estoqueDisponivel) {
+            alert(`🐊 Opa! Só temos ${Math.max(estoqueDisponivel, 0)} unidades disponíveis para adicionar agora.`);
+            return;
+        }
     }
-
     modalQuantidadeAtual = novaQtd;
     atualizarModalUI();
 }
 
 // --- CARRINHO ---
 function confirmarAdicaoAoCarrinho() {
-    for (let i = 0; i < modalQuantidadeAtual; i++) {
-        carrinho.push({ ...produtoAtualModal, presente: false });
+    const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal.id);
+    const estoqueDisponivel = produtoAtualModal.estoque - jaNoCarrinho;
+
+    if (modalQuantidadeAtual > estoqueDisponivel) {
+        alert(`🐊 Opa! Só temos ${Math.max(estoqueDisponivel, 0)} unidades disponíveis para adicionar agora.`);
+        return;
     }
 
+    for (let i = 0; i < modalQuantidadeAtual; i++) {
+        carrinho.push({ ...produtoAtualModal, presente: false }); 
+    }
     document.getElementById('cart-count').innerText = carrinho.length;
     document.getElementById('modal-area-venda').style.display = 'none';
     document.getElementById('modal-footer-preco').style.display = 'none';
@@ -470,43 +483,15 @@ function removerDoCarrinho(index) {
 async function finalizarPedido() {
     const pag = document.getElementById('metodo-pagamento').value;
     const entrega = document.getElementById('metodo-entrega').value;
-    const enderecoCompleto = montarEnderecoCompleto();
+    const endereco = document.getElementById('input-endereco').value.trim();
     const codPedido = 'JAC-' + Math.floor(1000 + Math.random() * 9000);
 
-    if (entrega === 'Entrega') {
-        const rua = document.getElementById('input-endereco')?.value.trim() || '';
-        const numero = document.getElementById('input-numero')?.value.trim() || '';
-        const bairro = document.getElementById('input-bairro')?.value.trim() || '';
-        const cidade = obterCidadeSelecionada();
-
-        if (!rua) {
-            alert('Informe a rua para entrega.');
-            return;
-        }
-
-        if (!numero) {
-            alert('Informe o número da casa para entrega.');
-            return;
-        }
-
-        if (!bairro) {
-            alert('Informe o bairro para entrega.');
-            return;
-        }
-
-        if (!cidade) {
-            alert('Informe a cidade para entrega.');
-            return;
-        }
-
-        if (!freteCalculado) {
-            alert('Clique em "Calcular frete" antes de finalizar o pedido.');
-            return;
-        }
+    if (entrega === 'Entrega' && !endereco) {
+        alert("Informe o endereço para entrega.");
+        return;
     }
 
     const itensAgrupados = {};
-
     carrinho.forEach(item => {
         if (!itensAgrupados[item.id]) {
             itensAgrupados[item.id] = { ...item, qtd: 0, presenteQtd: 0 };
@@ -516,59 +501,85 @@ async function finalizarPedido() {
     });
 
     let totalGeral = 0;
-    Object.values(itensAgrupados).forEach(i => {
+    for (const i of Object.values(itensAgrupados)) {
         totalGeral += i.preco * i.qtd;
-    });
+
+        const produtoAtualizado = produtosLocais.find(produto => produto.id == i.id);
+        if (!produtoAtualizado || i.qtd > Number(produtoAtualizado.estoque || 0)) {
+            alert(`🐊 Estoque insuficiente para ${i.nome}. Atualize a página e tente novamente.`);
+            await carregarProdutos();
+            return;
+        }
+    }
 
     const totalFinal = totalGeral + valorFreteAtual;
     const tokenConfirmacao = crypto.randomUUID();
 
-    const { error } = await supabaseClient
-        .from('pedidos')
-        .insert([
-            {
-                code: codPedido,
-                itens: itensAgrupados,
-                endereco: entrega === 'Entrega' ? enderecoCompleto : null,
-                frete: valorFreteAtual,
-                total: totalFinal,
-                status: 'PENDENTE',
-                token_confirmacao: tokenConfirmacao
-            }
-        ]);
+    const payloadPedido = {
+        p_code: codPedido,
+        p_itens: itensAgrupados,
+        p_endereco: entrega === 'Entrega' ? endereco : null,
+        p_frete: valorFreteAtual,
+        p_total: totalFinal,
+        p_status: 'PENDENTE',
+        p_token_confirmacao: tokenConfirmacao
+    };
 
-    if (error) {
-        console.error('Erro ao salvar pedido:', error);
-        alert('Erro ao registrar pedido. Tente novamente.');
-        return;
+    const botaoFinalizar = document.getElementById('modal-btn-acao');
+    const textoOriginalBotao = botaoFinalizar?.innerText || '🚀 Finalizar no WhatsApp';
+    if (botaoFinalizar) {
+        botaoFinalizar.disabled = true;
+        botaoFinalizar.innerText = 'Salvando pedido...';
     }
 
-    let msg = '';
-    msg += '🐊 *PEDIDO JACARÉ UTILIDADES*\n';
-    msg += '🆔 *CÓDIGO:* ' + codPedido + '\n\n';
+    try {
+        const { error } = await supabaseClient.rpc('criar_pedido_com_baixa_estoque', payloadPedido);
 
-    Object.values(itensAgrupados).forEach(i => {
-        const sub = i.preco * i.qtd;
-        const txtPresente = i.presenteQtd > 0 ? ` _(🎁 ${i.presenteQtd} para presente)_` : '';
-        msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
-    });
+        if (error) {
+            console.error("Erro ao salvar pedido e baixar estoque:", error);
+            alert(error.message?.includes('Estoque insuficiente')
+                ? 'Um ou mais itens ficaram sem estoque. Atualize a página e tente novamente.'
+                : 'Erro ao registrar pedido. Tente novamente.');
+            await carregarProdutos();
+            return;
+        }
 
-    if (entrega === 'Entrega') {
-        msg += `\n*FRETE:* R$ ${valorFreteAtual.toFixed(2).replace('.', ',')}\n`;
+        await carregarProdutos();
+
+        let msg = "";
+        msg += "🐊 *PEDIDO JACARÉ UTILIDADES*\n";
+        msg += "🆔 *CÓDIGO:* " + codPedido + "\n\n";
+
+        Object.values(itensAgrupados).forEach(i => {
+            const sub = i.preco * i.qtd;
+            let txtPresente = i.presenteQtd > 0 ? ` _(🎁 ${i.presenteQtd} para presente)_` : '';
+            msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
+        });
+
+        msg += `\n*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}\n`;
+        msg += `*PAGAMENTO:* ${pag}\n`;
+        msg += `*TIPO:* ${entrega}\n`;
+
+        if (entrega === 'Entrega') {
+            msg += `*ENDEREÇO:* ${endereco.toUpperCase()}\n`;
+        }
+
+        msg += `\n É um sucesso!\n\n`;
+
+        const msgCodificada = encodeURIComponent(msg);
+
+        carrinho = [];
+        valorFreteAtual = 0;
+        document.getElementById('cart-count').innerText = '0';
+        fecharModal();
+
+        window.open(`https://wa.me/31998997812?text=${msgCodificada}`, '_blank');
+    } finally {
+        if (botaoFinalizar) {
+            botaoFinalizar.disabled = false;
+            botaoFinalizar.innerText = textoOriginalBotao;
+        }
     }
-
-    msg += `\n*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}\n`;
-    msg += `*PAGAMENTO:* ${pag}\n`;
-    msg += `*TIPO:* ${entrega}\n`;
-
-    if (entrega === 'Entrega') {
-        msg += `*ENDEREÇO:* ${enderecoCompleto.toUpperCase()}\n`;
-    }
-
-    msg += '\nÉ um sucesso!\n\n';
-
-    const msgCodificada = encodeURIComponent(msg);
-    window.open(`https://wa.me/31998997812?text=${msgCodificada}`, '_blank');
 }
 
 function fecharModal() {
