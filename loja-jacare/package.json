@@ -1,7 +1,10 @@
 {
   "name": "jacare-utilidades",
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "mercadopago": "^2.0.0",
+    "pdfkit": "^0.15.0"
   }
 }
