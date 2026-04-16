@@ -8,7 +8,7 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
 const client = new MercadoPagoConfig({
-  accessToken: 'APP_USR-1004378793949320-032709-21346c9343a216093894220a2c442012-3288905341', // coloque no .env da Vercel
+  accessToken: process.env.MP_ACCESS_TOKEN // coloque no .env da Vercel
 });
 
 export default async function handler(req, res) {
