@@ -24,6 +24,36 @@ function rangeDiaBrasil() {
   return { inicioUTC, fimUTC, br };
 }
 
+function isMissingColumnError(error, columnName) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes(columnName.toLowerCase()) && message.includes('column');
+}
+
+async function buscarFinalizadosDoDia(inicioUTC, fimUTC) {
+  const preferredColumn = 'updated_at';
+  let result = await supabase
+    .from('pedidos')
+    .select('*')
+    .eq('status', 'FINALIZADO')
+    .gte(preferredColumn, inicioUTC)
+    .lte(preferredColumn, fimUTC)
+    .order(preferredColumn, { ascending: true });
+
+  if (result.error && isMissingColumnError(result.error, preferredColumn)) {
+    result = await supabase
+      .from('pedidos')
+      .select('*')
+      .eq('status', 'FINALIZADO')
+      .gte('created_at', inicioUTC)
+      .lte('created_at', fimUTC)
+      .order('created_at', { ascending: true });
+
+    return { ...result, timeColumn: 'created_at' };
+  }
+
+  return { ...result, timeColumn: preferredColumn };
+}
+
 function formatMoney(value) {
   const amount = Number(value || 0).toFixed(2).replace('.', ',');
   return `R$ ${amount}`;
@@ -51,14 +81,7 @@ export default async function handler(req, res) {
 
   try {
     const { inicioUTC, fimUTC, br } = rangeDiaBrasil();
-
-    const { data, error } = await supabase
-      .from('pedidos')
-      .select('*')
-      .eq('status', 'FINALIZADO')
-      .gte('created_at', inicioUTC)
-      .lte('created_at', fimUTC)
-      .order('created_at', { ascending: true });
+    const { data, error, timeColumn } = await buscarFinalizadosDoDia(inicioUTC, fimUTC);
 
     if (error) {
       return res.status(500).json({ sucesso: false, erro: error.message });
@@ -91,12 +114,14 @@ export default async function handler(req, res) {
     }
 
     data.forEach((pedido, index) => {
-      const hora = new Date(pedido.created_at).toLocaleString('pt-BR');
+      const horarioReferencia = pedido[timeColumn] || pedido.created_at;
+      const hora = new Date(horarioReferencia).toLocaleString('pt-BR');
       const itens = normalizarItens(pedido.itens);
+      const labelHora = timeColumn === 'updated_at' ? 'Finalizado em' : 'Criado em';
 
       doc.fontSize(12).text('PEDIDO JACARE UTILIDADES');
       doc.fontSize(11).text(`CODIGO: ${pedido.code || '-'}`);
-      doc.fontSize(10).fillColor('#555').text(`Criado em: ${hora}`);
+      doc.fontSize(10).fillColor('#555').text(`${labelHora}: ${hora}`);
       doc.fillColor('#000');
       doc.moveDown(0.4);
 

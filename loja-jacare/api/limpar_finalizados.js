@@ -23,6 +23,32 @@ function rangeDiaBrasil() {
   return { inicioUTC, fimUTC };
 }
 
+function isMissingColumnError(error, columnName) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes(columnName.toLowerCase()) && message.includes('column');
+}
+
+async function buscarIdsFinalizadosDoDia(inicioUTC, fimUTC) {
+  const preferedColumn = 'updated_at';
+  let result = await supabase
+    .from('pedidos')
+    .select('id')
+    .eq('status', 'FINALIZADO')
+    .gte(preferedColumn, inicioUTC)
+    .lte(preferedColumn, fimUTC);
+
+  if (result.error && isMissingColumnError(result.error, preferedColumn)) {
+    result = await supabase
+      .from('pedidos')
+      .select('id')
+      .eq('status', 'FINALIZADO')
+      .gte('created_at', inicioUTC)
+      .lte('created_at', fimUTC);
+  }
+
+  return result;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -34,13 +60,22 @@ export default async function handler(req, res) {
 
   try {
     const { inicioUTC, fimUTC } = rangeDiaBrasil();
+    const { data, error: selectError } = await buscarIdsFinalizadosDoDia(inicioUTC, fimUTC);
+
+    if (selectError) {
+      return res.status(500).json({ sucesso: false, erro: selectError.message });
+    }
+
+    const ids = (data || []).map((pedido) => pedido.id).filter(Boolean);
+
+    if (ids.length === 0) {
+      return res.status(200).json({ sucesso: true, removidos: 0 });
+    }
 
     const { error, count } = await supabase
       .from('pedidos')
       .delete({ count: 'exact' })
-      .eq('status', 'FINALIZADO')
-      .gte('created_at', inicioUTC)
-      .lte('created_at', fimUTC);
+      .in('id', ids);
 
     if (error) {
       return res.status(500).json({ sucesso: false, erro: error.message });
