@@ -24,34 +24,46 @@ function rangeDiaBrasil() {
   return { inicioUTC, fimUTC, br };
 }
 
-function isMissingColumnError(error, columnName) {
-  const message = String(error?.message || '').toLowerCase();
-  return message.includes(columnName.toLowerCase()) && message.includes('column');
+function getDataBrasilKey(value) {
+  if (!value) return '';
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date(value));
 }
 
-async function buscarFinalizadosDoDia(inicioUTC, fimUTC) {
-  const preferredColumn = 'updated_at';
-  let result = await supabase
+async function buscarFinalizadosDoDia() {
+  const hojeBrasil = getDataBrasilKey(new Date());
+  const { data, error } = await supabase
     .from('pedidos')
     .select('*')
-    .eq('status', 'FINALIZADO')
-    .gte(preferredColumn, inicioUTC)
-    .lte(preferredColumn, fimUTC)
-    .order(preferredColumn, { ascending: true });
+    .eq('status', 'FINALIZADO');
 
-  if (result.error && isMissingColumnError(result.error, preferredColumn)) {
-    result = await supabase
-      .from('pedidos')
-      .select('*')
-      .eq('status', 'FINALIZADO')
-      .gte('created_at', inicioUTC)
-      .lte('created_at', fimUTC)
-      .order('created_at', { ascending: true });
-
-    return { ...result, timeColumn: 'created_at' };
+  if (error) {
+    return { data: null, error, timeColumn: 'created_at' };
   }
 
-  return { ...result, timeColumn: preferredColumn };
+  const finalizadosHoje = (data || [])
+    .filter((pedido) => {
+      const referencia = pedido.updated_at || pedido.created_at;
+      return getDataBrasilKey(referencia) === hojeBrasil;
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const timeB = new Date(b.updated_at || b.created_at || 0).getTime();
+      return timeA - timeB;
+    });
+
+  const usaUpdatedAt = finalizadosHoje.some((pedido) => pedido.updated_at);
+
+  return {
+    data: finalizadosHoje,
+    error: null,
+    timeColumn: usaUpdatedAt ? 'updated_at' : 'created_at'
+  };
 }
 
 function formatMoney(value) {
@@ -80,8 +92,8 @@ export default async function handler(req, res) {
   if (!ensureAdminRequest(req, res)) return;
 
   try {
-    const { inicioUTC, fimUTC, br } = rangeDiaBrasil();
-    const { data, error, timeColumn } = await buscarFinalizadosDoDia(inicioUTC, fimUTC);
+    const { br } = rangeDiaBrasil();
+    const { data, error, timeColumn } = await buscarFinalizadosDoDia();
 
     if (error) {
       return res.status(500).json({ sucesso: false, erro: error.message });
