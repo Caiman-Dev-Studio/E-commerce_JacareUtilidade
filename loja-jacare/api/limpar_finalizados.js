@@ -23,41 +23,30 @@ function rangeDiaBrasil() {
   return { inicioUTC, fimUTC };
 }
 
-function getDataBrasilKey(value) {
-  if (!value) return '';
-
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(new Date(value));
+function isMissingColumnError(error, columnName) {
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes(columnName.toLowerCase()) && message.includes('column');
 }
 
-function isMesmoDiaBrasil(value, targetKey) {
-  return getDataBrasilKey(value) === targetKey;
-}
-
-async function buscarIdsFinalizadosDoDia() {
-  const hojeBrasil = getDataBrasilKey(new Date());
-  const { data, error } = await supabase
+async function buscarIdsFinalizadosDoDia(inicioUTC, fimUTC) {
+  const preferedColumn = 'updated_at';
+  let result = await supabase
     .from('pedidos')
-    .select('id, created_at, updated_at, status')
-    .eq('status', 'FINALIZADO');
+    .select('id')
+    .eq('status', 'FINALIZADO')
+    .gte(preferedColumn, inicioUTC)
+    .lte(preferedColumn, fimUTC);
 
-  if (error) {
-    return { data: null, error };
+  if (result.error && isMissingColumnError(result.error, preferedColumn)) {
+    result = await supabase
+      .from('pedidos')
+      .select('id')
+      .eq('status', 'FINALIZADO')
+      .gte('created_at', inicioUTC)
+      .lte('created_at', fimUTC);
   }
 
-  const ids = (data || [])
-    .filter((pedido) => {
-      const referencia = pedido.updated_at || pedido.created_at;
-      return isMesmoDiaBrasil(referencia, hojeBrasil);
-    })
-    .map((pedido) => pedido.id)
-    .filter(Boolean);
-
-  return { data: ids, error: null };
+  return result;
 }
 
 export default async function handler(req, res) {
@@ -70,13 +59,14 @@ export default async function handler(req, res) {
   if (!ensureAdminRequest(req, res)) return;
 
   try {
-    const { data, error: selectError } = await buscarIdsFinalizadosDoDia();
+    const { inicioUTC, fimUTC } = rangeDiaBrasil();
+    const { data, error: selectError } = await buscarIdsFinalizadosDoDia(inicioUTC, fimUTC);
 
     if (selectError) {
       return res.status(500).json({ sucesso: false, erro: selectError.message });
     }
 
-    const ids = data || [];
+    const ids = (data || []).map((pedido) => pedido.id).filter(Boolean);
 
     if (ids.length === 0) {
       return res.status(200).json({ sucesso: true, removidos: 0 });
