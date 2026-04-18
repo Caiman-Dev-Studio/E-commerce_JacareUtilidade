@@ -339,7 +339,7 @@ function ajustarQtdModal(delta) {
     if (novaQtd < 1) return;
     if (produtoAtualModal) {
         const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal.id);
-        const estoqueDisponivel = produtoAtualizado.estoque - jaNoCarrinho;
+        const estoqueDisponivel = Number(produtoAtualModal.estoque || 0) - jaNoCarrinho;
 
         if (novaQtd > estoqueDisponivel) {
             alert(`🐊 Opa! Só temos ${Math.max(estoqueDisponivel, 0)} unidades disponíveis para adicionar agora.`);

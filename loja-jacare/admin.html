@@ -493,13 +493,17 @@ async function marcarPronto(codigo, token){
 }
 
 async function mudarStatus(codigo, status){
-  const { error } = await supabaseClient
-    .from('pedidos')
-    .update({ status: status })
-    .eq('code', codigo)
+  const r = await fetch("/api/admin-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codigo, status })
+  })
 
-  if(error){
+  const j = await r.json()
+
+  if(!r.ok || !j.ok){
     alert("Erro ao atualizar")
+    console.error(j)
     return
   }
 
