@@ -42,7 +42,7 @@ async function buscarIdsFinalizadosDoDia() {
   const hojeBrasil = getDataBrasilKey(new Date());
   const { data, error } = await supabase
     .from('pedidos')
-    .select('*')
+    .select('id, created_at, updated_at, status')
     .eq('status', 'FINALIZADO');
 
   if (error) {
