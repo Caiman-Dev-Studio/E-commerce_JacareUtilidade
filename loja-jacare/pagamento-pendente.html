@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagamento Aprovado | Jacare Utilidades</title>
+    <title>Pagamento Pendente | Jacare Utilidades</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <style>
         body {
@@ -12,8 +12,8 @@
             display: grid;
             place-items: center;
             font-family: Inter, Arial, sans-serif;
-            background: #f4faf6;
-            color: #17361f;
+            background: #fff8ef;
+            color: #4d3a1d;
         }
 
         .box {
@@ -32,31 +32,21 @@
             border-radius: 50%;
             display: grid;
             place-items: center;
-            background: #e5f7eb;
-            color: #008037;
+            background: #fff1d8;
+            color: #b77900;
             font-size: 2rem;
             font-weight: 700;
         }
 
         h1 {
             margin: 0 0 10px;
-            color: #008037;
+            color: #b77900;
         }
 
         p {
             margin: 0;
             line-height: 1.6;
-            color: #4d5d52;
-        }
-
-        .code {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 18px;
-            border-radius: 999px;
-            background: #eef8f1;
-            color: #008037;
-            font-weight: 700;
+            color: #6f5a39;
         }
 
         .btn {
@@ -73,19 +63,10 @@
 </head>
 <body>
     <main class="box">
-        <div class="status">OK</div>
-        <h1>Pagamento aprovado</h1>
-        <p>Seu pedido foi confirmado e ja entrou no fluxo da loja. Em breve a equipe fara o proximo contato.</p>
-        <div class="code" id="cod-pedido">Pedido confirmado</div>
+        <div class="status">...</div>
+        <h1>Pagamento pendente</h1>
+        <p>Recebemos seu pedido, mas o pagamento ainda esta em analise ou aguardando confirmacao.</p>
         <a class="btn" href="/">Voltar para a loja</a>
     </main>
-
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const pedido = params.get('pedido');
-        if (pedido) {
-            document.getElementById('cod-pedido').textContent = pedido;
-        }
-    </script>
 </body>
 </html>

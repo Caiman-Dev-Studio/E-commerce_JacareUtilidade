@@ -2,50 +2,464 @@ const SUPABASE_URL = 'https://ffmtqfjafolydcdaldap.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BoUeyott9mr3wpDRS4VP7g_mn7mAQx_';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const FRETE_ECONOMICO_GRUPOS = [
+    { grupo: 'Grupo Nova Cidade', ancora: 'Nova Cidade', valor: 6, bairros: ['Nova Cidade', 'Conjunto Habitacional Bernardo Valadares Vasconcelos', 'Cidade Nova', 'Luxemburgo', 'Interlagos I', 'Interlagos II', 'Gloria', 'Funcionarios', 'Aeroporto Industrial', 'Alex Paiva', 'Distrito Industrial', 'Jardim Europa', 'Kwait', 'Iraque'] },
+    { grupo: 'Grupo Manoa', ancora: 'Manoa', valor: 12, bairros: ['Manoa', 'Sao Francisco de Assis', 'Nossa Senhora do Carmo', 'Nossa Senhora do Carmo II', 'Nossa Senhora das Gracas', 'Santa Rita de Cassia', 'Santa Cruz'] },
+    { grupo: 'Grupo Centro', ancora: 'Centro', valor: 9, bairros: ['Centro', 'Piedade', 'Vila Santa Helena', 'Canaa', 'Braz Filizola', 'Chacara do Paiva'] },
+    { grupo: 'Grupo Boa Vista', ancora: 'Boa Vista', valor: 9, bairros: ['Boa Vista', 'New York', 'Panorama', 'Vila Brasil', 'Esperanca', 'Bom Jardim', 'Fatima', 'Santa Marcelina', 'Papavento'] },
+    { grupo: 'Grupo Jardim Arizona', ancora: 'Jardim Arizona', valor: 12, bairros: ['Jardim Arizona', 'Mangabeiras', 'Campo de Aviacao', 'Santa Helena', 'Santa Luzia', 'Jardim Cambui', 'Cedro e Cachoeira', 'Vila Ipe'] },
+    { grupo: 'Grupo Vale das Palmeiras', ancora: 'Vale das Palmeiras', valor: 15, bairros: ['Vale das Palmeiras', 'Mata Grande', 'Sao Cristovao', 'Sao Cristovao II', 'Catarina', 'Recanto da Serra'] },
+    { grupo: 'Grupo Padre Teodoro', ancora: 'Padre Teodoro', valor: 15, bairros: ['Padre Teodoro', 'Padre Teodoro II', 'Iporanga', 'Iporanga II', 'Varzea', 'Varzea da Lagoa II', 'Novo Horizonte', 'Recanto do Cedro', 'Florida'] },
+    { grupo: 'Grupo Eldorado', ancora: 'Eldorado', valor: 15, bairros: ['Eldorado', 'Universitario', 'Henrique Nery', 'Jardim Universitario', 'Honorina Pontes', 'Ouro Branco'] },
+    { grupo: 'Grupo Brasilia', ancora: 'Brasilia', valor: 12, bairros: ['Brasilia', 'Itapoa', 'Itapoa II', 'Anchieta', 'Industrias', 'Industrias II', 'Esmeraldas', 'Esmeraldas II', 'Santa Maria'] },
+    { grupo: 'Grupo Montreal', ancora: 'Montreal', valor: 12, bairros: ['Montreal', 'Montreal II', 'Olinto Alvim', 'Brejinho', 'Sao Vicente', 'Residencial Por do Sol', 'Residencial Por do Sol'] },
+    { grupo: 'Grupo CDI', ancora: 'CDI', valor: 12, bairros: ['CDI', 'Canada', 'Canada II', 'Monte Carlo', 'Tamandua'] },
+    { grupo: 'Grupo JK', ancora: 'JK', valor: 9, bairros: ['JK', 'Alvorada', 'Planalto', 'Nova Serrana', 'Portal da Serra', 'Titamar'] },
+    { grupo: 'Grupo Verde Vale', ancora: 'Verde Vale', valor: 7.5, bairros: ['Verde Vale', 'Jardim dos Pequis', 'Belo Vale', 'Belo Vale II', 'Orozimbo Macedo'] },
+    { grupo: 'Grupo Progresso', ancora: 'Progresso', valor: 12, bairros: ['Progresso', 'Progresso II', 'Vapabucu', 'Morro do Claro', 'Residencial Da Vinci', 'Residencial Ermitage', 'Dona Dora', 'Dante Lanza', 'Blue Garden Safira'] },
+    { grupo: 'Grupo Jardim Primavera', ancora: 'Jardim Primavera', valor: 12, bairros: ['Jardim Primavera I', 'Jardim Primavera II', 'Bela Vista I', 'Bela Vista II', 'Bela Vista III', 'Santa Felicidade', 'Residencial Campestre', 'Nossa Senhora de Lourdes'] },
+    { grupo: 'Grupo Cidade de Deus', ancora: 'Cidade de Deus', valor: 15, bairros: ['Cidade de Deus', 'Ondina Vasconcelos de Oliveira'] },
+    { grupo: 'Grupo Bouganvile', ancora: 'Bouganvile', valor: 20, bairros: ['Bouganvile I', 'Bouganvile II', 'Bouganville I', 'Bouganville II', 'Residencial Dona Silvia I', 'Condominio Lago Azul'] },
+    { grupo: 'Grupo Sao Geraldo', ancora: 'Sao Geraldo', valor: 12, bairros: ['Sao Geraldo', 'Sao Pedro', 'Sao Jose', 'Santa Rosa', 'Santo Antonio', 'Sao Dimas', 'Sao Jorge'] },
+    { grupo: 'Grupo Barreiro', ancora: 'Barreiro', valor: 20, bairros: ['Barreiro', 'Barreiro de Baixo', 'Barreiro de Cima', 'Lontra', 'Lontrinha', 'Silva Xavier', 'Quinducha', 'Brejao', 'Alto Coqueiral', 'Fazenda Velha', 'Paredao', 'Condominio Lagoas do Moinho', 'Quintas da Varginha', 'Quintas do Lago I', 'Quintas do Lago II'] }
+];
+
 let produtosLocais = [];
 let bannersLocais = [];
+let kitsLocais = [];
 let carrinho = [];
 let valorFreteAtual = 0;
 let bannerAtual = 0;
 let modalQuantidadeAtual = 1;
 let produtoAtualModal = null;
 let freteCalculado = false;
+let kitAtualProduto = null;
+let kitsCarrinhoAbertos = new Set();
+let detalhesFreteAtual = {
+    modalidade: '',
+    grupo: '',
+    bairro: '',
+    cidade: '',
+    descricao: ''
+};
 
-function quantidadeNoCarrinho(produtoId) {
-    return carrinho.filter(item => item.id == produtoId).length
+const estadoVitrine = {
+    modo: 'home',
+    termo: '',
+    categoria: ''
+};
+
+// Estado isolado do modal de kits para manter a interacao previsivel.
+const estadoModalKit = {
+    kit: null,
+    selecionados: new Set(),
+    itemExpandidoId: null,
+    produtoOrigemId: null
+};
+
+function formatarMoeda(valor) {
+    return `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
 }
 
-// --- CARREGAMENTO ---
-async function carregarBanners() {
-    const { data, error } = await supabaseClient
-        .from('banners')
-        .select('imagem_url')
-        .eq('ativo', true);
+function normalizarTexto(texto) {
+    return String(texto || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
 
-    if (!error && data.length > 0) {
-        bannersLocais = data.map(b => b.imagem_url);
-        renderizarBanner(0);
+function normalizarIdentificadorBairro(texto) {
+    return normalizarTexto(texto)
+        .replace(/^bairro\s+/g, '')
+        .replace(/\biii\b/g, '3')
+        .replace(/\bii\b/g, '2')
+        .replace(/\bi\b/g, '1')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 
-        setInterval(() => {
-            bannerAtual = (bannerAtual + 1) % bannersLocais.length;
-            renderizarBanner(bannerAtual);
-        }, 5000);
+const MAPA_FRETE_ECONOMICO = FRETE_ECONOMICO_GRUPOS.reduce((mapa, grupo) => {
+    grupo.bairros.forEach(bairro => {
+        mapa.set(normalizarIdentificadorBairro(bairro), {
+            bairro,
+            grupo: grupo.grupo,
+            ancora: grupo.ancora,
+            valor: Number(grupo.valor)
+        });
+    });
+    return mapa;
+}, new Map());
+
+const BAIRROS_ECONOMICOS = Array.from(
+    new Set(
+        FRETE_ECONOMICO_GRUPOS.flatMap(grupo => grupo.bairros.map(bairro => bairro.trim()))
+    )
+).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+function produtoDisponivel(produto) {
+    return produto && Number(produto.estoque) > 0;
+}
+
+function produtoEmPromocao(produto) {
+    const valor = produto?.em_promocao;
+    const precoAtual = Number(produto?.preco || 0);
+    const precoAntigo = Number(produto?.preco_antigo || 0);
+
+    if (typeof valor === 'boolean') return valor || precoAntigo > precoAtual;
+    if (typeof valor === 'number') return valor === 1 || precoAntigo > precoAtual;
+
+    const texto = String(valor || '').trim().toLowerCase();
+    return ['1', 'true', 't', 'sim', 'yes', 'y', 'on'].includes(texto) || precoAntigo > precoAtual;
+}
+
+function obterTotalEntradaCarrinho(entrada) {
+    if (!entrada) return 0;
+    return entrada.tipo === 'kit' ? Number(entrada.totalFinal || 0) : Number(entrada.preco || 0);
+}
+
+function contarItensCarrinho() {
+    return carrinho.reduce((total, entrada) => {
+        if (entrada.tipo === 'kit') {
+            return total + entrada.itens.length;
+        }
+        return total + 1;
+    }, 0);
+}
+
+function atualizarContadorCarrinho() {
+    const contador = document.getElementById('cart-count');
+    const fab = document.querySelector('.cart-fab');
+
+    if (contador) {
+        contador.innerText = contarItensCarrinho();
+    }
+
+    if (fab) {
+        fab.classList.remove('pulse-cart');
+        void fab.offsetWidth;
+        fab.classList.add('pulse-cart');
     }
 }
 
-function renderizarBanner(i) {
-    const img = document.getElementById('banner-img');
-    if (img && bannersLocais[i]) {
-        img.style.opacity = 0;
-        setTimeout(() => {
-            img.src = bannersLocais[i];
-            img.style.opacity = 1;
-        }, 500);
+function obterResumoFinanceiroCarrinho() {
+    return carrinho.reduce((resumo, entrada) => {
+        if (entrada.tipo === 'kit') {
+            resumo.subtotalBruto += Number(entrada.subtotal || 0);
+            resumo.descontoKits += Number(entrada.desconto || 0);
+            resumo.subtotalLiquido += Number(entrada.totalFinal || 0);
+        } else {
+            const preco = Number(entrada.preco || 0);
+            resumo.subtotalBruto += preco;
+            resumo.subtotalLiquido += preco;
+        }
+
+        return resumo;
+    }, {
+        subtotalBruto: 0,
+        descontoKits: 0,
+        subtotalLiquido: 0
+    });
+}
+
+function obterTotalCarrinhoSemFrete() {
+    return obterResumoFinanceiroCarrinho().subtotalLiquido;
+}
+
+function renderizarResumoCheckout() {
+    const resumoBox = document.getElementById('checkout-resumo-pedido');
+    if (!resumoBox) return;
+
+    const subtotal = obterTotalCarrinhoSemFrete();
+    const totalFinal = subtotal + valorFreteAtual;
+    const metodoEntrega = document.getElementById('metodo-entrega')?.value || 'Retirada';
+    const bairro = document.getElementById('input-bairro')?.value.trim() || detalhesFreteAtual.bairro || '-';
+    const linhas = [
+        '<div class="checkout-summary-title">Resumo do pedido</div>',
+        `<div class="checkout-summary-row"><span>Subtotal</span><strong>${formatarMoeda(subtotal)}</strong></div>`
+    ];
+
+    if (metodoEntrega === 'Retirada') {
+        linhas.push('<div class="checkout-summary-row"><span>Entrega</span><strong>Retirada na loja</strong></div>');
+        linhas.push('<div class="checkout-summary-row"><span>Frete</span><strong>R$ 0,00</strong></div>');
+    } else {
+        const modalidade = obterTipoEntregaSelecionado();
+        linhas.push(`<div class="checkout-summary-row"><span>Entrega</span><strong>${modalidade ? modalidade.toUpperCase() : 'Selecione'}</strong></div>`);
+
+        if (modalidade === 'Economica') {
+            linhas.push(`<div class="checkout-summary-row"><span>Bairro</span><strong>${bairro || '-'}</strong></div>`);
+        }
+
+        linhas.push(`<div class="checkout-summary-row"><span>Frete</span><strong>${freteCalculado ? formatarMoeda(valorFreteAtual) : 'A calcular'}</strong></div>`);
     }
+
+    linhas.push(`
+        <div class="checkout-summary-total-wrap">
+            <div class="checkout-summary-row checkout-summary-total">
+                <span>Total final</span>
+                <strong>${formatarMoeda(totalFinal)}</strong>
+            </div>
+            <div class="checkout-summary-total-note">Subtotal + frete do pedido</div>
+        </div>
+    `);
+    resumoBox.innerHTML = linhas.join('');
+}
+
+function atualizarTotalComFrete() {
+    const totalFinal = obterTotalCarrinhoSemFrete() + valorFreteAtual;
+    const resumo = document.getElementById('resumo-total-geral');
+
+    if (resumo) {
+        resumo.innerText = formatarMoeda(totalFinal);
+    }
+
+    renderizarResumoCheckout();
+}
+
+function hidratarCatalogoDeKits() {
+    if (!window.KitCatalog) return;
+    window.KitCatalog.hidratar({
+        produtos: produtosLocais,
+        kits: kitsLocais
+    });
+}
+
+function mostrarHomeVisivel(mostrar) {
+    const hero = document.querySelector('.hero');
+    const categories = document.querySelector('.categories');
+    const btnVoltar = document.getElementById('container-busca-voltar');
+    const secaoKitsHome = document.getElementById('secao-kits-home');
+
+    if (hero) hero.style.display = mostrar ? 'block' : 'none';
+    if (categories) categories.style.display = mostrar ? 'block' : 'none';
+    if (btnVoltar) btnVoltar.style.display = mostrar ? 'none' : 'block';
+    if (secaoKitsHome) secaoKitsHome.style.display = mostrar ? 'block' : 'none';
 }
 
 function obterCidadeSelecionada() {
     return document.getElementById('input-cidade')?.value.trim() || 'Sete Lagoas';
+}
+
+function obterTipoEntregaSelecionado() {
+    return document.getElementById('tipo-entrega')?.value || '';
+}
+
+function obterLabelTipoEntrega() {
+    const tipo = obterTipoEntregaSelecionado();
+    return tipo ? tipo.toUpperCase() : 'Selecione';
+}
+
+function atualizarSelecaoVisualEntrega() {
+    const tipoSelecionado = obterTipoEntregaSelecionado();
+    document.querySelectorAll('.delivery-option').forEach(botao => {
+        botao.classList.toggle('is-selected', botao.dataset.value === tipoSelecionado);
+    });
+}
+
+function atualizarInfoTipoEntrega() {
+    const info = document.getElementById('tipo-entrega-info');
+    if (!info) return;
+
+    const tipo = obterTipoEntregaSelecionado();
+    if (!tipo) {
+        info.style.display = 'none';
+        info.innerHTML = '';
+        return;
+    }
+
+    if (tipo === 'Turbo') {
+        info.innerHTML = '<strong>Turbo</strong><br>Entregas liberadas em ate 2 horas apos a confirmacao do pagamento.';
+    } else {
+        info.innerHTML = '<strong>Economico</strong><br>Entregas realizadas apos as 16:00. Pedidos confirmados depois desse horario seguem no proximo dia, tambem apos as 16:00.';
+    }
+
+    info.style.display = 'block';
+}
+
+function limparErroTipoEntrega() {
+    const erro = document.getElementById('tipo-entrega-erro');
+    if (erro) erro.style.display = 'none';
+}
+
+function exibirErroTipoEntrega() {
+    const erro = document.getElementById('tipo-entrega-erro');
+    if (erro) erro.style.display = 'block';
+}
+
+function selecionarTipoEntrega(tipo) {
+    const input = document.getElementById('tipo-entrega');
+    if (!input) return;
+
+    input.value = tipo;
+    limparErroTipoEntrega();
+    atualizarSelecaoVisualEntrega();
+    atualizarInfoTipoEntrega();
+    marcarFreteComoPendente();
+}
+
+function definirStatusFrete(mensagem, cor = '#666') {
+    const status = document.getElementById('frete-status');
+    if (!status) return;
+
+    status.innerText = mensagem;
+    status.style.color = cor;
+}
+
+function atualizarAjudaFrete() {
+    const ajuda = document.getElementById('frete-ajuda');
+    if (!ajuda) return;
+
+    if (obterTipoEntregaSelecionado() === 'Economica') {
+        ajuda.innerText = 'Digite o bairro e escolha uma sugestao para evitar erros no calculo do frete.';
+        return;
+    }
+
+    ajuda.innerText = 'Informe o endereco e confirme o frete para seguir ao pagamento.';
+}
+
+function limparDetalhesFrete() {
+    detalhesFreteAtual = {
+        modalidade: '',
+        grupo: '',
+        bairro: '',
+        cidade: '',
+        descricao: ''
+    };
+}
+
+function obterDescricaoFrete() {
+    if (!detalhesFreteAtual.modalidade) {
+        return 'Sem frete';
+    }
+
+    if (detalhesFreteAtual.modalidade === 'Economica') {
+        return 'Entrega Economica';
+    }
+
+    return 'Entrega Turbo';
+}
+
+function calcularDistanciaEdicao(a, b) {
+    const origem = normalizarIdentificadorBairro(a);
+    const destino = normalizarIdentificadorBairro(b);
+    const matriz = Array.from({ length: origem.length + 1 }, () => new Array(destino.length + 1).fill(0));
+
+    for (let i = 0; i <= origem.length; i += 1) matriz[i][0] = i;
+    for (let j = 0; j <= destino.length; j += 1) matriz[0][j] = j;
+
+    for (let i = 1; i <= origem.length; i += 1) {
+        for (let j = 1; j <= destino.length; j += 1) {
+            const custo = origem[i - 1] === destino[j - 1] ? 0 : 1;
+            matriz[i][j] = Math.min(
+                matriz[i - 1][j] + 1,
+                matriz[i][j - 1] + 1,
+                matriz[i - 1][j - 1] + custo
+            );
+        }
+    }
+
+    return matriz[origem.length][destino.length];
+}
+
+function obterSugestoesDeBairro(termo, limite = 5) {
+    const consulta = normalizarIdentificadorBairro(termo);
+    if (!consulta) return BAIRROS_ECONOMICOS.slice(0, limite);
+
+    const ranqueados = BAIRROS_ECONOMICOS.map(bairro => {
+        const normalizado = normalizarIdentificadorBairro(bairro);
+        let pontuacao = calcularDistanciaEdicao(consulta, normalizado);
+
+        if (normalizado.startsWith(consulta)) pontuacao -= 3;
+        else if (normalizado.includes(consulta)) pontuacao -= 1;
+
+        return { bairro, pontuacao };
+    });
+
+    return ranqueados
+        .sort((a, b) => a.pontuacao - b.pontuacao || a.bairro.localeCompare(b.bairro, 'pt-BR'))
+        .slice(0, limite)
+        .map(item => item.bairro);
+}
+
+function atualizarSugestaoDeBairro() {
+    const ajuda = document.getElementById('bairro-sugestao');
+    const input = document.getElementById('input-bairro');
+    const lista = document.getElementById('lista-bairros-sete-lagoas');
+    if (!ajuda || !input || !lista) return;
+
+    const sugestoes = obterSugestoesDeBairro(input.value, 8);
+    lista.innerHTML = sugestoes.map(bairro => `<option value="${bairro}"></option>`).join('');
+
+    const termo = input.value.trim();
+    if (!termo) {
+        ajuda.style.display = 'none';
+        ajuda.innerHTML = '';
+        return;
+    }
+
+    const sugestaoPrincipal = sugestoes[0];
+    if (!sugestaoPrincipal) {
+        ajuda.style.display = 'none';
+        ajuda.innerHTML = '';
+        return;
+    }
+
+    const normalizadoDigitado = normalizarIdentificadorBairro(termo);
+    const normalizadoPrincipal = normalizarIdentificadorBairro(sugestaoPrincipal);
+
+    if (normalizadoDigitado === normalizadoPrincipal) {
+        ajuda.style.display = 'none';
+        ajuda.innerHTML = '';
+        return;
+    }
+
+    ajuda.style.display = 'block';
+    ajuda.innerHTML = `Voce quis dizer <button type="button" onclick="aplicarSugestaoBairro('${sugestaoPrincipal.replace(/'/g, "\\'")}')">${sugestaoPrincipal}</button>?`;
+}
+
+function aplicarSugestaoBairro(bairro) {
+    const input = document.getElementById('input-bairro');
+    if (!input) return;
+
+    input.value = bairro;
+    atualizarSugestaoDeBairro();
+    marcarFreteComoPendente();
+}
+
+function obterFreteEconomicoPorBairro(bairro, cidade) {
+    if (normalizarTexto(cidade) !== 'sete lagoas') {
+        return {
+            ok: false,
+            error: 'A entrega economica atende somente bairros de Sete Lagoas.'
+        };
+    }
+
+    const chave = normalizarIdentificadorBairro(bairro);
+    let info = MAPA_FRETE_ECONOMICO.get(chave);
+
+    if (!info) {
+        const sugestoes = obterSugestoesDeBairro(bairro, 1);
+        const sugestao = sugestoes[0];
+        if (sugestao) {
+            const infoSugerida = MAPA_FRETE_ECONOMICO.get(normalizarIdentificadorBairro(sugestao));
+            const distancia = calcularDistanciaEdicao(chave, sugestao);
+            if (infoSugerida && distancia <= 3) {
+                info = infoSugerida;
+            }
+        }
+    }
+
+    if (!info) {
+        return {
+            ok: false,
+            error: 'Nao encontramos esse bairro no mapa da entrega economica. Confira o nome informado ou escolha a entrega Turbo.'
+        };
+    }
+
+    return {
+        ok: true,
+        ...info
+    };
 }
 
 function montarEnderecoCompleto() {
@@ -68,16 +482,280 @@ function montarEnderecoCompleto() {
 function marcarFreteComoPendente() {
     freteCalculado = false;
     valorFreteAtual = 0;
+    limparDetalhesFrete();
     atualizarTotalComFrete();
+    definirStatusFrete('Frete ainda nao calculado.');
+    atualizarAjudaFrete();
+}
 
-    const status = document.getElementById('frete-status');
-    if (status) {
-        status.innerText = 'Frete ainda não calculado.';
-        status.style.color = '#666';
+function gerarCodigoPedido() {
+    return `JAC-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function gerarTokenConfirmacao() {
+    if (window.crypto?.randomUUID) {
+        return window.crypto.randomUUID();
+    }
+
+    return `tok-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function obterProdutoAtualizado(produtoId) {
+    return produtosLocais.find(produto => Number(produto.id) === Number(produtoId));
+}
+
+function quantidadeNoCarrinho(produtoId) {
+    return carrinho.reduce((total, entrada) => {
+        if (entrada.tipo === 'kit') {
+            return total + entrada.itens.filter(item => Number(item.id) === Number(produtoId)).length;
+        }
+
+        return Number(entrada.id) === Number(produtoId) ? total + 1 : total;
+    }, 0);
+}
+
+function configurarBotaoCheckout() {
+    const botaoPrincipal = document.getElementById('modal-btn-acao');
+    if (!botaoPrincipal) return null;
+
+    botaoPrincipal.style.display = 'block';
+    botaoPrincipal.disabled = false;
+    botaoPrincipal.innerText = 'Pagar Agora';
+    botaoPrincipal.onclick = pagarMercadoPago;
+
+    return botaoPrincipal;
+}
+
+function validarCamposDeEntrega() {
+    const metodoEntrega = document.getElementById('metodo-entrega')?.value;
+    if (metodoEntrega !== 'Entrega') {
+        return true;
+    }
+
+    const rua = document.getElementById('input-endereco')?.value.trim() || '';
+    const numero = document.getElementById('input-numero')?.value.trim() || '';
+    const bairro = document.getElementById('input-bairro')?.value.trim() || '';
+    const cidade = obterCidadeSelecionada();
+    const tipoEntrega = obterTipoEntregaSelecionado();
+
+    if (!tipoEntrega) {
+        exibirErroTipoEntrega();
+        alert('Escolha Turbo ou Economico para continuar.');
+        return false;
+    }
+
+    if (!rua) {
+        alert('Informe a rua para entrega.');
+        return false;
+    }
+
+    if (!numero) {
+        alert('Informe o numero da casa para entrega.');
+        return false;
+    }
+
+    if (!bairro) {
+        alert('Informe o bairro para entrega.');
+        return false;
+    }
+
+    if (!cidade) {
+        alert('Informe a cidade para entrega.');
+        return false;
+    }
+
+    if (obterTipoEntregaSelecionado() === 'Economica' && normalizarTexto(cidade) !== 'sete lagoas') {
+        alert('A entrega economica atende somente bairros de Sete Lagoas.');
+        return false;
+    }
+
+    if (!freteCalculado) {
+        alert('Clique em "Calcular frete" antes de finalizar o pedido.');
+        return false;
+    }
+
+    return true;
+}
+
+function agruparItensDoCarrinho() {
+    const itensAgrupados = {};
+
+    carrinho.forEach(entrada => {
+        if (entrada.tipo === 'kit') {
+            entrada.itens.forEach(item => {
+                if (!itensAgrupados[item.id]) {
+                    itensAgrupados[item.id] = { ...item, qtd: 0, presenteQtd: 0 };
+                }
+                itensAgrupados[item.id].qtd += 1;
+            });
+            return;
+        }
+
+        if (!itensAgrupados[entrada.id]) {
+            itensAgrupados[entrada.id] = { ...entrada, qtd: 0, presenteQtd: 0 };
+        }
+
+        itensAgrupados[entrada.id].qtd += 1;
+
+        if (entrada.presente) {
+            itensAgrupados[entrada.id].presenteQtd += 1;
+        }
+    });
+
+    return itensAgrupados;
+}
+
+function montarItensMercadoPago() {
+    const produtosAgrupados = {};
+    const itensMercadoPago = [];
+
+    carrinho.forEach((entrada, index) => {
+        if (entrada.tipo === 'kit') {
+            itensMercadoPago.push({
+                id: `kit-${entrada.kitId || index}-${index}`,
+                nome: `Kit: ${entrada.nomeKit}`,
+                qtd: 1,
+                preco: Number(entrada.totalFinal || 0)
+            });
+            return;
+        }
+
+        if (!produtosAgrupados[entrada.id]) {
+            produtosAgrupados[entrada.id] = {
+                id: entrada.id,
+                nome: entrada.nome,
+                qtd: 0,
+                preco: Number(entrada.preco || 0)
+            };
+        }
+
+        produtosAgrupados[entrada.id].qtd += 1;
+    });
+
+    return [...Object.values(produtosAgrupados), ...itensMercadoPago];
+}
+
+function montarPayloadPedido(codPedido = gerarCodigoPedido()) {
+    const pagamento = document.getElementById('metodo-pagamento')?.value || 'Pix';
+    const entrega = document.getElementById('metodo-entrega')?.value || 'Retirada';
+    const modalidadeEntrega = entrega === 'Entrega' ? obterTipoEntregaSelecionado() : 'Retirada';
+    const enderecoCompleto = montarEnderecoCompleto();
+    const tokenConfirmacao = gerarTokenConfirmacao();
+    const itensAgrupados = agruparItensDoCarrinho();
+    const resumo = obterResumoFinanceiroCarrinho();
+
+    return {
+        codPedido,
+        pagamento,
+        entrega,
+        modalidadeEntrega,
+        enderecoCompleto,
+        tokenConfirmacao,
+        itensAgrupados,
+        itensMercadoPago: montarItensMercadoPago(),
+        subtotalBruto: resumo.subtotalBruto,
+        descontoKits: resumo.descontoKits,
+        subtotalLiquido: resumo.subtotalLiquido,
+        frete: valorFreteAtual,
+        freteDescricao: obterDescricaoFrete(),
+        freteGrupo: detalhesFreteAtual.grupo,
+        totalFinal: resumo.subtotalLiquido + valorFreteAtual
+    };
+}
+
+function erroPermiteFallbackDeInsert(error) {
+    const mensagem = String(error?.message || '');
+
+    return (
+        mensagem.includes('Could not find the function public.criar_pedido_com_baixa_estoque') ||
+        mensagem.includes('Could not find the function') ||
+        mensagem.includes('schema cache')
+    );
+}
+
+async function salvarPedidoNoSupabase(payload) {
+    const { error: erroRpc } = await supabaseClient.rpc('criar_pedido_com_baixa_estoque', {
+        p_code: payload.codPedido,
+        p_itens: payload.itensAgrupados,
+        p_endereco: payload.entrega === 'Entrega' ? payload.enderecoCompleto : null,
+        p_frete: payload.frete,
+        p_total: payload.totalFinal,
+        p_status: 'PENDENTE',
+        p_token_confirmacao: payload.tokenConfirmacao
+    });
+
+    if (!erroRpc) {
+        return { ok: true, metodo: 'rpc' };
+    }
+
+    if (!erroPermiteFallbackDeInsert(erroRpc)) {
+        return { ok: false, error: erroRpc };
+    }
+
+    console.warn('RPC de baixa de estoque indisponivel. Usando insert simples como fallback.', erroRpc);
+
+    const { error: erroInsert } = await supabaseClient
+        .from('pedidos')
+        .insert([
+            {
+                code: payload.codPedido,
+                itens: payload.itensAgrupados,
+                endereco: payload.entrega === 'Entrega' ? payload.enderecoCompleto : null,
+                frete: payload.frete,
+                total: payload.totalFinal,
+                status: 'PENDENTE',
+                token_confirmacao: payload.tokenConfirmacao
+            }
+        ]);
+
+    if (erroInsert) {
+        return { ok: false, error: erroInsert };
+    }
+
+    return { ok: true, metodo: 'insert' };
+}
+
+function exibirErroAoSalvarPedido(error) {
+    console.error('Erro ao salvar pedido:', error);
+
+    const mensagem = String(error?.message || '');
+    if (mensagem.includes('Estoque insuficiente')) {
+        alert('Um ou mais itens ficaram sem estoque. Atualize a vitrine e tente novamente.');
+        carregarProdutos(true);
+        return;
+    }
+
+    alert('Erro ao registrar pedido. Tente novamente.');
+}
+
+async function carregarBanners() {
+    const { data, error } = await supabaseClient
+        .from('banners')
+        .select('imagem_url')
+        .eq('ativo', true);
+
+    if (!error && data.length > 0) {
+        bannersLocais = data.map(banner => banner.imagem_url);
+        renderizarBanner(0);
+
+        setInterval(() => {
+            bannerAtual = (bannerAtual + 1) % bannersLocais.length;
+            renderizarBanner(bannerAtual);
+        }, 5000);
     }
 }
 
-// --- FRETE ---
+function renderizarBanner(indice) {
+    const img = document.getElementById('banner-img');
+    if (img && bannersLocais[indice]) {
+        img.style.opacity = 0;
+        setTimeout(() => {
+            img.src = bannersLocais[indice];
+            img.style.opacity = 1;
+        }, 500);
+    }
+}
+
 async function calcularFrete() {
     const metodoEntrega = document.getElementById('metodo-entrega')?.value;
     const rua = document.getElementById('input-endereco')?.value.trim() || '';
@@ -85,35 +763,94 @@ async function calcularFrete() {
     const bairro = document.getElementById('input-bairro')?.value.trim() || '';
     const cidade = obterCidadeSelecionada();
     const enderecoCompleto = montarEnderecoCompleto();
-    const status = document.getElementById('frete-status');
+    const modalidadeEntrega = obterTipoEntregaSelecionado();
+    const btn = document.getElementById('btn-calcular-frete');
 
     if (metodoEntrega !== 'Entrega') {
-        valorFreteAtual = 0;
-        freteCalculado = false;
-        atualizarTotalComFrete();
+        marcarFreteComoPendente();
         return;
     }
 
-    if (!rua) { alert('Informe a rua para calcular o frete.'); return; }
-    if (!numero) { alert('Informe o número da casa para calcular o frete.'); return; }
-    if (!bairro) { alert('Informe o bairro para calcular o frete.'); return; }
-    if (!cidade) { alert('Informe a cidade para calcular o frete.'); return; }
+    if (!modalidadeEntrega) {
+        exibirErroTipoEntrega();
+        alert('Escolha Turbo ou Economico antes de calcular o frete.');
+        return;
+    }
+
+    if (!rua) {
+        alert('Informe a rua para calcular o frete.');
+        return;
+    }
+
+    if (!numero) {
+        alert('Informe o numero da casa para calcular o frete.');
+        return;
+    }
+
+    if (!bairro) {
+        alert('Informe o bairro para calcular o frete.');
+        return;
+    }
+
+    if (!cidade) {
+        alert('Informe a cidade para calcular o frete.');
+        return;
+    }
 
     try {
-        const btn = document.getElementById('btn-calcular-frete');
-        if (btn) { btn.disabled = true; btn.innerText = 'Calculando...'; }
-        if (status) { status.innerText = 'Consultando frete...'; status.style.color = '#666'; }
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Calculando...';
+        }
+
+        definirStatusFrete(
+            modalidadeEntrega === 'Economica'
+                ? 'Consultando tabela da entrega economica...'
+                : 'Consultando frete Turbo...'
+        );
+
+        if (modalidadeEntrega === 'Economica') {
+            const resultadoEconomico = obterFreteEconomicoPorBairro(bairro, cidade);
+
+            if (!resultadoEconomico.ok) {
+                marcarFreteComoPendente();
+                definirStatusFrete(resultadoEconomico.error, '#c62828');
+                alert(resultadoEconomico.error);
+                return;
+            }
+
+            const inputBairro = document.getElementById('input-bairro');
+            if (inputBairro && resultadoEconomico.bairro) {
+                inputBairro.value = resultadoEconomico.bairro;
+            }
+            atualizarSugestaoDeBairro();
+
+            valorFreteAtual = Number(resultadoEconomico.valor);
+            freteCalculado = true;
+            detalhesFreteAtual = {
+                modalidade: 'Economica',
+                grupo: resultadoEconomico.grupo,
+                bairro: resultadoEconomico.bairro || bairro,
+                cidade,
+                descricao: 'Entrega Economica'
+            };
+            atualizarTotalComFrete();
+
+            definirStatusFrete(
+                `Entrega Economica: ${formatarMoeda(valorFreteAtual)}${resultadoEconomico.bairro ? ` | Bairro: ${resultadoEconomico.bairro}` : ''}`,
+                'var(--green)'
+            );
+            return;
+        }
 
         const geoResponse = await fetch(`/api/geocode?address=${encodeURIComponent(enderecoCompleto)}`);
         const geoData = await geoResponse.json();
 
         if (!geoResponse.ok || geoData.lat == null || geoData.lng == null) {
-            console.error('Erro ao geocodificar endereço:', geoData);
-            valorFreteAtual = 0;
-            freteCalculado = false;
-            atualizarTotalComFrete();
-            if (status) { status.innerText = geoData?.error || 'Não foi possível localizar o endereço.'; status.style.color = '#c62828'; }
-            alert(geoData?.error || 'Não foi possível localizar o endereço.');
+            console.error('Erro ao geocodificar endereco:', geoData);
+            marcarFreteComoPendente();
+            definirStatusFrete(geoData?.error || 'Nao foi possivel localizar o endereco.', '#c62828');
+            alert(geoData?.error || 'Nao foi possivel localizar o endereco.');
             return;
         }
 
@@ -140,10 +877,8 @@ async function calcularFrete() {
 
         if (!response.ok) {
             console.error('Erro ao calcular frete:', data);
-            valorFreteAtual = 0;
-            freteCalculado = false;
-            atualizarTotalComFrete();
-            if (status) { status.innerText = 'Falha ao calcular frete.'; status.style.color = '#c62828'; }
+            marcarFreteComoPendente();
+            definirStatusFrete(data?.error || 'Falha ao calcular frete Turbo.', '#c62828');
             alert(data?.error || 'Erro ao calcular o frete.');
             return;
         }
@@ -151,64 +886,114 @@ async function calcularFrete() {
         if (typeof data.shipping === 'number') {
             valorFreteAtual = data.shipping;
             freteCalculado = true;
+            detalhesFreteAtual = {
+                modalidade: 'Turbo',
+                grupo: '',
+                bairro,
+                cidade,
+                descricao: 'Entrega Turbo'
+            };
             atualizarTotalComFrete();
-            if (status) {
-                status.innerText = `Frete calculado: R$ ${data.shipping.toFixed(2).replace('.', ',')}${data.eta ? ` | ETA: ${data.eta}` : ''}`;
-                status.style.color = 'var(--green)';
-            }
-            alert(`🛵 Frete: R$ ${data.shipping.toFixed(2).replace('.', ',')}${data.eta ? ` | ETA: ${data.eta}` : ''}`);
-        } else {
-            valorFreteAtual = 0;
-            freteCalculado = false;
-            atualizarTotalComFrete();
-            if (status) { status.innerText = 'Não foi possível calcular o frete.'; status.style.color = '#c62828'; }
-            alert('Não foi possível calcular o frete.');
+            definirStatusFrete(
+                `Entrega Turbo: ${formatarMoeda(data.shipping)}${data.eta ? ` | ETA: ${data.eta}` : ''}`,
+                'var(--green)'
+            );
+            return;
         }
+
+        marcarFreteComoPendente();
+        definirStatusFrete('Nao foi possivel calcular o frete.', '#c62828');
+        alert('Nao foi possivel calcular o frete.');
     } catch (error) {
         console.error('Erro na chamada de frete:', error);
-        valorFreteAtual = 0;
-        freteCalculado = false;
-        atualizarTotalComFrete();
-        if (status) { status.innerText = 'Erro ao consultar frete.'; status.style.color = '#c62828'; }
+        marcarFreteComoPendente();
+        definirStatusFrete('Erro ao consultar o frete.', '#c62828');
         alert('Erro ao consultar o frete.');
     } finally {
-        const btn = document.getElementById('btn-calcular-frete');
-        if (btn) { btn.disabled = false; btn.innerText = '🛵 Calcular frete'; }
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'Calcular frete';
+        }
     }
 }
 
-function atualizarTotalComFrete() {
-    let total = 0;
-    carrinho.forEach(item => total += item.preco);
-
-    const totalFinal = total + valorFreteAtual;
-    const resumo = document.getElementById('resumo-total-geral');
-
-    if (resumo) {
-        resumo.innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+async function carregarProdutos(forcarAtualizacao = false) {
+    if (produtosLocais.length > 0 && !forcarAtualizacao) {
+        limparBusca();
+        return;
     }
+
+    const [respostaProdutos, respostaKits] = await Promise.all([
+        supabaseClient.from('produtos').select('*'),
+        carregarKitsDoSupabase()
+    ]);
+
+    if (respostaProdutos.error) {
+        console.error('Erro no Supabase ao carregar produtos:', respostaProdutos.error);
+        return;
+    }
+
+    produtosLocais = respostaProdutos.data || [];
+    kitsLocais = respostaKits || [];
+    hidratarCatalogoDeKits();
+    renderizarVitrine(produtosLocais, { modo: 'home' });
 }
 
-async function carregarProdutos() {
-    const { data, error } = await supabaseClient.from('produtos').select('*');
-    if (error) return console.error('Erro no Supabase:', error);
-    produtosLocais = data;
-    renderizarGrids(data);
+async function carregarKitsDoSupabase() {
+    const { data, error } = await supabaseClient
+        .from('kits')
+        .select(`
+            id,
+            slug,
+            nome,
+            descricao_curta,
+            ativo,
+            destaque_home,
+            desconto_tipo,
+            desconto_min_itens,
+            desconto_percentual,
+            kit_itens (
+                produto_id,
+                ordem
+            ),
+            kit_categorias (
+                categoria
+            )
+        `)
+        .eq('ativo', true)
+        .order('nome', { ascending: true });
+
+    if (error) {
+        console.error('Erro no Supabase ao carregar kits:', error);
+        return [];
+    }
+
+    // Mantem a leitura do banco enxuta: o preco continua vindo apenas da tabela produtos.
+    return Array.isArray(data) ? data : [];
 }
 
-// --- VITRINE ---
+function renderizarVitrine(lista, contexto = {}) {
+    estadoVitrine.modo = contexto.modo || 'home';
+    estadoVitrine.termo = contexto.termo || '';
+    estadoVitrine.categoria = contexto.categoria || '';
+
+    renderizarGrids(lista);
+    renderizarKitsHome();
+    renderizarKitsRelacionados(lista, contexto);
+
+    const estaNaHome = estadoVitrine.modo === 'home';
+    mostrarHomeVisivel(estaNaHome);
+}
+
 function renderizarGrids(lista) {
-    const itensDisponiveis = lista.filter(p => p.estoque > 0);
+    const itensDisponiveis = lista.filter(produtoDisponivel);
+    const promocoesDisponiveis = produtosLocais
+        .filter(produtoDisponivel)
+        .filter(produtoEmPromocao);
 
-    const itensPromocao = itensDisponiveis.filter(p =>
-        String(p.em_promocao).toLowerCase() === 'true' || p.em_promocao === 1
-    );
+    const itensGerais = itensDisponiveis.filter(produto => !produtoEmPromocao(produto));
 
-    const itensGerais = itensDisponiveis.filter(p =>
-        !(String(p.em_promocao).toLowerCase() === 'true' || p.em_promocao === 1)
-    );
-
-    renderizarLista(itensPromocao, 'grid-promocoes');
+    renderizarLista(promocoesDisponiveis, 'grid-promocoes');
     renderizarLista(itensGerais, 'grid-produtos-geral');
 }
 
@@ -223,68 +1008,138 @@ function renderizarLista(lista, elementId) {
         return;
     }
 
-    lista.forEach(p => {
-        const ehPromo = String(p.em_promocao).toLowerCase() === 'true' || p.em_promocao === 1;
-        const badgeHtml = ehPromo ? `<span class="promo-badge">PROMOÇÃO</span>` : '';
-        const precoAntigoHtml = p.preco_antigo
-            ? `<span class="price-old">R$ ${p.preco_antigo.toFixed(2).replace('.', ',')}</span>`
+    lista.forEach(produto => {
+        const ehPromo = produtoEmPromocao(produto);
+        const badgeHtml = ehPromo ? '<span class="promo-badge">PROMOCAO</span>' : '';
+        const precoAntigoHtml = produto.preco_antigo
+            ? `<span class="price-old">${formatarMoeda(produto.preco_antigo)}</span>`
             : '';
 
         grid.innerHTML += `
-            <div class="product-card" onclick="abrirDetalhes(${p.id})">
+            <div class="product-card" onclick="abrirDetalhes(${produto.id})">
                 ${badgeHtml}
                 <div class="product-img-bg">
-                    <img src="${p.imagem_url}" onerror="handleImageError(this)">
+                    <img src="${produto.imagem_url}" onerror="handleImageError(this)">
                 </div>
-                <h3 style="font-size:0.85rem; margin-bottom:5px;">${p.nome}</h3>
+                <h3 style="font-size:0.85rem; margin-bottom:5px;">${produto.nome}</h3>
                 ${precoAntigoHtml}
-                <strong style="color:var(--green)">R$ ${p.preco.toFixed(2).replace('.', ',')}</strong>
+                <strong style="color:var(--green)">${formatarMoeda(produto.preco)}</strong>
             </div>
         `;
     });
 }
 
-// --- BUSCA ---
+function renderizarKitsHome() {
+    const secao = document.getElementById('secao-kits-home');
+    const grid = document.getElementById('grid-kits-home');
+    if (!secao || !grid || !window.KitCatalog) return;
+
+    const kits = window.KitCatalog.obterKitsHome();
+    grid.innerHTML = montarHtmlListaDeKits(kits);
+    secao.style.display = estadoVitrine.modo === 'home' && kits.length > 0 ? 'block' : 'none';
+}
+
+function renderizarKitsRelacionados(lista, contexto) {
+    const secao = document.getElementById('secao-kits-relacionados');
+    const grid = document.getElementById('grid-kits-relacionados');
+    const titulo = document.getElementById('titulo-kits-relacionados');
+    const texto = document.getElementById('texto-kits-relacionados');
+
+    if (!secao || !grid || !titulo || !texto || !window.KitCatalog) return;
+
+    // Kits ficam sempre em um bloco separado para nao misturar com a grade principal.
+    let kits = [];
+
+    if (contexto.modo === 'categoria' && contexto.categoria) {
+        kits = window.KitCatalog.obterKitsPorCategoria(contexto.categoria);
+        titulo.innerText = `Kits relacionados a ${contexto.categoria}`;
+        texto.innerText = 'Sugestoes de combinacao para acompanhar os produtos desta categoria.';
+    } else if (contexto.modo === 'busca' && contexto.termo) {
+        kits = window.KitCatalog.obterKitsPorBusca(contexto.termo, lista);
+        titulo.innerText = `Kits relacionados a "${contexto.termo}"`;
+        texto.innerText = 'Os produtos continuam na vitrine, e estes kits aparecem separados para facilitar a escolha.';
+    }
+
+    grid.innerHTML = montarHtmlListaDeKits(kits);
+    secao.style.display = kits.length > 0 ? 'block' : 'none';
+}
+
+function montarHtmlListaDeKits(kits) {
+    if (!kits || kits.length === 0) {
+        return '<p style="opacity:0.6; padding:10px 0;">Nenhum kit disponivel neste momento.</p>';
+    }
+
+    return kits.map(kit => {
+        const regra = kit.desconto?.tipo === 'min_items_percent'
+            ? `${kit.desconto.percentual}% OFF a partir de ${kit.desconto.minItens} itens`
+            : 'Combinacao flexivel';
+
+        return `
+            <article class="kit-card">
+                <span class="kit-card-tag">${regra}</span>
+                <h3>${kit.nome}</h3>
+                <p>${kit.descricao}</p>
+                <div class="kit-card-items">${kit.itens.length} item(ns) sugeridos para combinar.</div>
+                <button type="button" class="btn-secondary" onclick="abrirModalKit('${kit.id}')">Kits e combinacoes</button>
+            </article>
+        `;
+    }).join('');
+}
+
 function buscarProdutos() {
-    const termo = document.getElementById('input-busca').value.toLowerCase().trim();
-    const hero = document.querySelector('.hero');
-    const categories = document.querySelector('.categories');
-    const btnVoltar = document.getElementById('container-busca-voltar');
+    const termo = document.getElementById('input-busca').value.trim();
+    const termoNormalizado = normalizarTexto(termo);
 
-    if (!termo) { limparBusca(); return; }
+    if (!termoNormalizado) {
+        limparBusca();
+        return;
+    }
 
-    if (hero) hero.style.display = 'none';
-    if (categories) categories.style.display = 'none';
-    if (btnVoltar) btnVoltar.style.display = 'block';
+    const filtrados = produtosLocais.filter(produto =>
+        normalizarTexto(produto.nome).includes(termoNormalizado)
+    );
 
-    const filtrados = produtosLocais.filter(p => p.nome.toLowerCase().includes(termo));
-    renderizarGrids(filtrados);
+    renderizarVitrine(filtrados, {
+        modo: 'busca',
+        termo
+    });
 }
 
 function limparBusca() {
     document.getElementById('input-busca').value = '';
-    const hero = document.querySelector('.hero');
-    const categories = document.querySelector('.categories');
-    const btnVoltar = document.getElementById('container-busca-voltar');
-
-    if (hero) hero.style.display = 'block';
-    if (categories) categories.style.display = 'block';
-    if (btnVoltar) btnVoltar.style.display = 'none';
-
-    renderizarGrids(produtosLocais);
+    renderizarVitrine(produtosLocais, { modo: 'home' });
 }
 
-function filtrarPorCategoria(cat) {
-    const filtrados = produtosLocais.filter(p => p.categoria === cat);
-    renderizarGrids(filtrados);
+function filtrarPorCategoria(categoria) {
+    const filtrados = produtosLocais.filter(produto => produto.categoria === categoria);
+
+    renderizarVitrine(filtrados, {
+        modo: 'categoria',
+        categoria
+    });
 }
 
-// --- MODAL ---
+function configurarBlocoKitDoProduto(produto) {
+    const bloco = document.getElementById('bloco-kit-produto');
+    const texto = document.getElementById('bloco-kit-produto-texto');
+    if (!bloco || !texto || !window.KitCatalog) return;
+
+    kitAtualProduto = window.KitCatalog.obterKitParaProduto(produto);
+
+    if (!kitAtualProduto) {
+        bloco.style.display = 'none';
+        return;
+    }
+
+    texto.innerText = `${kitAtualProduto.nome}: comece com este item marcado e ajuste do seu jeito.`;
+    bloco.style.display = 'flex';
+}
+
 function abrirDetalhes(id) {
-    const p = produtosLocais.find(item => item.id == id);
-    if (!p) return;
+    const produto = produtosLocais.find(item => Number(item.id) === Number(id));
+    if (!produto) return;
 
-    produtoAtualModal = p;
+    produtoAtualModal = produto;
     modalQuantidadeAtual = 1;
 
     document.getElementById('modal-area-venda').style.display = 'block';
@@ -292,23 +1147,24 @@ function abrirDetalhes(id) {
     document.getElementById('modal-area-checkout').style.display = 'none';
     document.getElementById('modal-footer-preco').style.display = 'flex';
     document.getElementById('modal-btn-acao').style.display = 'block';
-    document.getElementById('modal-titulo').innerText = p.nome;
+    document.getElementById('modal-titulo').innerText = produto.nome;
 
-    const imagens = [p.imagem_url, p.imagem_url2, p.imagem_url3].filter(img => img && img !== '');
+    const imagens = [produto.imagem_url, produto.imagem_url2, produto.imagem_url3].filter(imagem => imagem && imagem !== '');
 
     let galeriaHtml = `<img src="${imagens[0]}" id="foto-principal-modal" class="main-modal-img">`;
 
     if (imagens.length > 1) {
-        galeriaHtml += `<div class="thumbnails-container">`;
-        imagens.forEach(img => {
-            galeriaHtml += `<img src="${img}" class="thumb-img" onclick="document.getElementById('foto-principal-modal').src='${img}'">`;
+        galeriaHtml += '<div class="thumbnails-container">';
+        imagens.forEach(imagem => {
+            galeriaHtml += `<img src="${imagem}" class="thumb-img" onclick="document.getElementById('foto-principal-modal').src='${imagem}'">`;
         });
-        galeriaHtml += `</div>`;
+        galeriaHtml += '</div>';
     }
 
     document.getElementById('modal-galeria').innerHTML = galeriaHtml;
-    document.getElementById('modal-descricao').innerText = p.descricao || 'É um sucesso!';
+    document.getElementById('modal-descricao').innerText = produto.descricao || 'E um sucesso!';
 
+    configurarBlocoKitDoProduto(produto);
     atualizarModalUI();
 
     const btn = document.getElementById('modal-btn-acao');
@@ -323,11 +1179,11 @@ function atualizarModalUI() {
 
     if (produtoAtualModal) {
         const total = produtoAtualModal.preco * modalQuantidadeAtual;
-        let textoPreco = `R$ ${total.toFixed(2).replace('.', ',')}`;
+        let textoPreco = formatarMoeda(total);
 
         if (produtoAtualModal.preco_antigo) {
             const totalAntigo = produtoAtualModal.preco_antigo * modalQuantidadeAtual;
-            textoPreco = `<span style="font-size:0.9rem; color:#aaa; text-decoration:line-through;">De: R$ ${totalAntigo.toFixed(2).replace('.', ',')}</span><br>Por: R$ ${total.toFixed(2).replace('.', ',')}`;
+            textoPreco = `<span style="font-size:0.9rem; color:#aaa; text-decoration:line-through;">De: ${formatarMoeda(totalAntigo)}</span><br>Por: ${formatarMoeda(total)}`;
         }
 
         document.getElementById('resumo-total-geral').innerHTML = textoPreco;
@@ -336,351 +1192,453 @@ function atualizarModalUI() {
 
 function ajustarQtdModal(delta) {
     const novaQtd = modalQuantidadeAtual + delta;
+
     if (novaQtd < 1) return;
+
     if (produtoAtualModal) {
+        const produtoAtualizado = obterProdutoAtualizado(produtoAtualModal.id) || produtoAtualModal;
         const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal.id);
-        const estoqueDisponivel = Number(produtoAtualModal.estoque || 0) - jaNoCarrinho;
+        const estoqueDisponivel = Number(produtoAtualizado.estoque || 0) - jaNoCarrinho;
 
         if (novaQtd > estoqueDisponivel) {
-            alert(`🐊 Opa! Só temos ${Math.max(estoqueDisponivel, 0)} unidades disponíveis para adicionar agora.`);
+            alert(`Opa! So temos ${Math.max(estoqueDisponivel, 0)} unidade(s) disponiveis para adicionar agora.`);
             return;
         }
     }
+
     modalQuantidadeAtual = novaQtd;
     atualizarModalUI();
 }
 
-// --- CARRINHO ---
 function confirmarAdicaoAoCarrinho() {
-    const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal.id);
-    const estoqueDisponivel = produtoAtualModal.estoque - jaNoCarrinho;
+    const produtoAtualizado = obterProdutoAtualizado(produtoAtualModal?.id) || produtoAtualModal;
+    const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal?.id);
+    const estoqueDisponivel = Number(produtoAtualizado?.estoque || 0) - jaNoCarrinho;
 
     if (modalQuantidadeAtual > estoqueDisponivel) {
-        alert(`🐊 Opa! Só temos ${Math.max(estoqueDisponivel, 0)} unidades disponíveis para adicionar agora.`);
+        alert(`Opa! So temos ${Math.max(estoqueDisponivel, 0)} unidade(s) disponiveis para adicionar agora.`);
         return;
     }
 
-    for (let i = 0; i < modalQuantidadeAtual; i++) {
-        carrinho.push({ ...produtoAtualModal, presente: false });
+    for (let i = 0; i < modalQuantidadeAtual; i += 1) {
+        carrinho.push({ tipo: 'produto', ...produtoAtualModal, presente: false });
     }
-    document.getElementById('cart-count').innerText = carrinho.length;
+
+    atualizarContadorCarrinho();
+    mostrarConfirmacaoAdicaoAoCarrinho();
+}
+
+function mostrarConfirmacaoAdicaoAoCarrinho() {
     document.getElementById('modal-area-venda').style.display = 'none';
     document.getElementById('modal-footer-preco').style.display = 'none';
     document.getElementById('modal-btn-acao').style.display = 'none';
+    document.getElementById('modal-area-checkout').style.display = 'none';
     document.getElementById('modal-area-escolha').style.display = 'block';
+    document.getElementById('modal-produto').style.display = 'block';
+}
+
+function abrirKitDoProdutoAtual() {
+    if (!produtoAtualModal || !kitAtualProduto) return;
+    abrirModalKit(kitAtualProduto.id, { produtoPreSelecionadoId: produtoAtualModal.id });
+}
+
+function calcularResumoDoKit(kit, selecionados) {
+    // O desconto e calculado apenas sobre os itens marcados pelo cliente.
+    const itensSelecionados = kit.itens.filter(item => selecionados.has(Number(item.id)));
+    const subtotal = itensSelecionados.reduce((total, item) => total + Number(item.preco || 0), 0);
+
+    let desconto = 0;
+    let regraAtiva = null;
+
+    if (kit.desconto?.tipo === 'min_items_percent') {
+        regraAtiva = kit.desconto;
+        if (itensSelecionados.length >= kit.desconto.minItens) {
+            desconto = subtotal * (kit.desconto.percentual / 100);
+        }
+    }
+
+    return {
+        itensSelecionados,
+        subtotal,
+        desconto,
+        total: subtotal - desconto,
+        regraAtiva
+    };
+}
+
+function abrirModalKit(kitId, opcoes = {}) {
+    if (!window.KitCatalog) return;
+
+    const produtoOrigem = produtosLocais.find(produto => Number(produto.id) === Number(opcoes.produtoPreSelecionadoId));
+    const kit = window.KitCatalog.obterKitPorId(kitId, { produtoAtual: produtoOrigem });
+
+    if (!kit) {
+        alert('Este kit nao esta disponivel no momento.');
+        return;
+    }
+
+    estadoModalKit.kit = kit;
+    estadoModalKit.produtoOrigemId = produtoOrigem ? Number(produtoOrigem.id) : null;
+    estadoModalKit.selecionados = new Set(produtoOrigem ? [Number(produtoOrigem.id)] : []);
+    estadoModalKit.itemExpandidoId = kit.itens[0] ? Number(kit.itens[0].id) : null;
+
+    document.getElementById('modal-kit').style.display = 'block';
+    renderizarModalKit();
+}
+
+function fecharModalKit() {
+    document.getElementById('modal-kit').style.display = 'none';
+    estadoModalKit.kit = null;
+    estadoModalKit.selecionados = new Set();
+    estadoModalKit.itemExpandidoId = null;
+    estadoModalKit.produtoOrigemId = null;
+}
+
+function renderizarModalKit() {
+    const kit = estadoModalKit.kit;
+    if (!kit) return;
+
+    document.getElementById('modal-kit-titulo').innerText = kit.nome;
+    document.getElementById('modal-kit-descricao').innerText = kit.descricao;
+
+    const lista = document.getElementById('lista-itens-kit');
+    // Apenas um item fica expandido por vez, controlado por itemExpandidoId.
+    lista.innerHTML = kit.itens.map(item => {
+        const itemId = Number(item.id);
+        const estaSelecionado = estadoModalKit.selecionados.has(itemId);
+        const estaExpandido = estadoModalKit.itemExpandidoId === itemId;
+
+        return `
+            <div class="kit-item">
+                <div class="kit-item-header">
+                    <input
+                        class="kit-item-checkbox"
+                        type="checkbox"
+                        ${estaSelecionado ? 'checked' : ''}
+                        onchange="toggleSelecaoItemKit(${itemId})"
+                    >
+                    <div class="kit-item-name">${item.nome}</div>
+                    <button type="button" class="kit-item-toggle" onclick="toggleExpansaoItemKit(${itemId})">
+                        ${estaExpandido ? '^' : '&#709;'}
+                    </button>
+                </div>
+                ${estaExpandido ? `
+                    <div class="kit-item-body">
+                        <img src="${item.imagem_url}" onerror="handleImageError(this)" alt="${item.nome}">
+                        <div>
+                            <p>${item.descricao || 'Produto pronto para entrar na sua combinacao.'}</p>
+                            <div class="kit-item-price">${formatarMoeda(item.preco)}</div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    const resumo = calcularResumoDoKit(kit, estadoModalKit.selecionados);
+    document.getElementById('kit-resumo-subtotal').innerText = formatarMoeda(resumo.subtotal);
+    document.getElementById('kit-resumo-desconto').innerText = `- ${formatarMoeda(resumo.desconto)}`;
+    document.getElementById('kit-resumo-total').innerText = formatarMoeda(resumo.total);
+
+    const regra = document.getElementById('kit-resumo-regra');
+    if (resumo.regraAtiva) {
+        if (resumo.itensSelecionados.length >= resumo.regraAtiva.minItens) {
+            regra.innerText = `Desconto aplicado: ${resumo.regraAtiva.percentual}% ao selecionar ${resumo.itensSelecionados.length} item(ns).`;
+        } else {
+            const faltam = resumo.regraAtiva.minItens - resumo.itensSelecionados.length;
+            regra.innerText = `Selecione mais ${faltam} item(ns) para liberar ${resumo.regraAtiva.percentual}% de desconto neste kit.`;
+        }
+    } else {
+        regra.innerText = 'Este kit funciona apenas como combinacao flexivel, sem desconto adicional.';
+    }
+
+    const botao = document.getElementById('modal-kit-btn-acao');
+    botao.disabled = resumo.itensSelecionados.length === 0;
+    botao.innerText = resumo.itensSelecionados.length === 0
+        ? 'Selecione ao menos um item'
+        : 'Adicionar kit ao carrinho';
+    botao.onclick = adicionarKitAoCarrinho;
+}
+
+function toggleSelecaoItemKit(itemId) {
+    const itemNormalizado = Number(itemId);
+    if (estadoModalKit.selecionados.has(itemNormalizado)) {
+        estadoModalKit.selecionados.delete(itemNormalizado);
+    } else {
+        estadoModalKit.selecionados.add(itemNormalizado);
+    }
+
+    renderizarModalKit();
+}
+
+function toggleExpansaoItemKit(itemId) {
+    const itemNormalizado = Number(itemId);
+    estadoModalKit.itemExpandidoId = estadoModalKit.itemExpandidoId === itemNormalizado ? null : itemNormalizado;
+    renderizarModalKit();
+}
+
+function adicionarKitAoCarrinho() {
+    const kit = estadoModalKit.kit;
+    if (!kit) return;
+
+    const resumo = calcularResumoDoKit(kit, estadoModalKit.selecionados);
+    if (resumo.itensSelecionados.length === 0) return;
+
+    carrinho.push({
+        tipo: 'kit',
+        kitId: kit.id,
+        nomeKit: kit.nome,
+        itens: resumo.itensSelecionados.map(item => ({ ...item })),
+        subtotal: resumo.subtotal,
+        desconto: resumo.desconto,
+        totalFinal: resumo.total
+    });
+
+    atualizarContadorCarrinho();
+    fecharModalKit();
+    mostrarConfirmacaoAdicaoAoCarrinho();
 }
 
 function abrirCarrinho() {
     if (carrinho.length === 0) {
-        alert('Seu carrinho está vazio!');
+        alert('Seu carrinho esta vazio!');
         return;
     }
 
     document.getElementById('modal-area-venda').style.display = 'none';
     document.getElementById('modal-area-escolha').style.display = 'none';
-    document.getElementById('modal-area-checkout').style.display = 'block';
-    document.getElementById('modal-footer-preco').style.display = 'flex';
+    document.getElementById('modal-area-checkout').style.display = 'flex';
+    document.getElementById('modal-footer-preco').style.display = 'none';
     document.getElementById('modal-btn-acao').style.display = 'block';
-    document.getElementById('modal-titulo').innerText = '🛒 Seus Pedidos';
+    document.getElementById('modal-titulo').innerText = 'Seus pedidos';
 
     const lista = document.getElementById('modal-lista-carrinho');
     lista.innerHTML = '';
 
-    let total = 0;
+    // O carrinho aceita dois formatos: item individual e bloco de kit.
+    carrinho.forEach((entrada, index) => {
+        if (entrada.tipo === 'kit') {
+            const aberto = kitsCarrinhoAbertos.has(index);
+            const itensHtml = entrada.itens.map(item => `
+                <div class="cart-kit-item">
+                    <span>${item.nome}</span>
+                    <strong>${formatarMoeda(item.preco)}</strong>
+                </div>
+            `).join('');
 
-    carrinho.forEach((item, index) => {
-        total += item.preco;
+            lista.innerHTML += `
+                <div class="cart-kit-block">
+                    <div class="cart-kit-header">
+                        <div class="cart-kit-title">${entrada.nomeKit}</div>
+                        <div class="cart-kit-total">${formatarMoeda(entrada.totalFinal)}</div>
+                        <button type="button" class="cart-kit-toggle" onclick="toggleKitCarrinho(${index})">${aberto ? '^' : '&#709;'}</button>
+                        <button type="button" class="cart-kit-delete" onclick="removerKitDoCarrinho(${index})">X</button>
+                    </div>
+                    ${aberto ? `
+                        <div class="cart-kit-body">
+                            <div class="cart-kit-items">${itensHtml}</div>
+                            <div class="cart-kit-summary">
+                                <div class="cart-kit-summary-row">
+                                    <span>Subtotal</span>
+                                    <strong>${formatarMoeda(entrada.subtotal)}</strong>
+                                </div>
+                                <div class="cart-kit-summary-row">
+                                    <span>Desconto</span>
+                                    <strong>- ${formatarMoeda(entrada.desconto)}</strong>
+                                </div>
+                                <div class="cart-kit-summary-row cart-kit-summary-total">
+                                    <span>Total final</span>
+                                    <strong>${formatarMoeda(entrada.totalFinal)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            return;
+        }
 
         lista.innerHTML += `
             <div class="cart-item-row">
-                <button class="btn-remover-unitario" onclick="removerDoCarrinho(${index})">🗑️</button>
+                <button class="btn-remover-unitario" onclick="removerDoCarrinho(${index})">X</button>
                 <div class="cart-item-info">
-                    <strong>${item.nome}</strong>
+                    <strong>${entrada.nome}</strong>
                     <label style="display:block; font-size:0.75rem; color:var(--green); margin-top:5px; cursor:pointer;">
-                        <input type="checkbox" onchange="togglePresente(${index}, this.checked)" ${item.presente ? 'checked' : ''}> 🎁 Presente?
+                        <input type="checkbox" onchange="togglePresente(${index}, this.checked)" ${entrada.presente ? 'checked' : ''}> Presente?
                     </label>
                 </div>
-                <div class="cart-item-price">R$ ${item.preco.toFixed(2).replace('.', ',')}</div>
+                <div class="cart-item-price">${formatarMoeda(entrada.preco)}</div>
             </div>
         `;
     });
 
-    const totalFinal = total + valorFreteAtual;
-    document.getElementById('resumo-total-geral').innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+    atualizarTotalComFrete();
 
-    // ✅ BOTÕES DE AÇÃO: WhatsApp + Mercado Pago
     const btn = document.getElementById('modal-btn-acao');
-    btn.innerText = '🚀 Finalizar no WhatsApp';
-    btn.onclick = finalizarPedido;
-
-    // Adiciona botão do Mercado Pago se ainda não existir
-    let btnMP = document.getElementById('btn-mercado-pago');
-    if (!btnMP) {
-        btnMP = document.createElement('button');
-        btnMP.id = 'btn-mercado-pago';
-        btnMP.className = 'add-btn';
-        btnMP.style.cssText = 'margin-top: 10px; background: #009ee3; display: flex; align-items: center; justify-content: center; gap: 8px;';
-        btnMP.innerHTML = `<img src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.5/mercadopago/logo__large@2x.png" style="height:20px; filter:brightness(0) invert(1);"> Pagar Online`;
-        btnMP.onclick = pagarMercadoPago;
-        btn.parentNode.insertBefore(btnMP, btn.nextSibling);
+    if (btn) {
+        configurarBotaoCheckout();
     }
-    btnMP.style.display = 'block';
 
     document.getElementById('modal-produto').style.display = 'block';
 }
 
+function toggleKitCarrinho(index) {
+    if (kitsCarrinhoAbertos.has(index)) {
+        kitsCarrinhoAbertos.delete(index);
+    } else {
+        kitsCarrinhoAbertos.add(index);
+    }
+    abrirCarrinho();
+}
+
+function reajustarIndicesDosKits(indexRemovido) {
+    kitsCarrinhoAbertos = new Set(
+        [...kitsCarrinhoAbertos]
+            .filter(index => index !== indexRemovido)
+            .map(index => (index > indexRemovido ? index - 1 : index))
+    );
+}
+
+function removerKitDoCarrinho(index) {
+    carrinho.splice(index, 1);
+    reajustarIndicesDosKits(index);
+    atualizarContadorCarrinho();
+
+    if (carrinho.length === 0) {
+        fecharModal();
+        return;
+    }
+
+    abrirCarrinho();
+}
+
 function togglePresente(index, valor) {
-    carrinho[index].presente = valor;
+    if (carrinho[index]?.tipo === 'produto') {
+        carrinho[index].presente = valor;
+    }
 }
 
 function removerDoCarrinho(index) {
     carrinho.splice(index, 1);
-    document.getElementById('cart-count').innerText = carrinho.length;
+    reajustarIndicesDosKits(index);
+    atualizarContadorCarrinho();
 
-    if (carrinho.length === 0) fecharModal();
-    else abrirCarrinho();
-}
-
-// =====================================================================
-// ✅ MERCADO PAGO - Cria preferência e redireciona para o checkout
-// =====================================================================
-async function pagarMercadoPago() {
-    const pag = document.getElementById('metodo-pagamento').value;
-    const entrega = document.getElementById('metodo-entrega').value;
-    const endereco = montarEnderecoCompleto();
-
-    if (entrega === 'Entrega') {
-        const rua = document.getElementById('input-endereco')?.value.trim();
-        if (!rua) { alert('Informe o endereço para entrega.'); return; }
-        if (!freteCalculado) { alert('Por favor, calcule o frete antes de pagar.'); return; }
+    if (carrinho.length === 0) {
+        fecharModal();
+        return;
     }
 
-    if (carrinho.length === 0) { alert('Carrinho vazio!'); return; }
+    abrirCarrinho();
+}
 
-    const btnMP = document.getElementById('btn-mercado-pago');
-    if (btnMP) { btnMP.disabled = true; btnMP.innerHTML = '⏳ Gerando link de pagamento...'; }
+async function pagarMercadoPago() {
+    if (carrinho.length === 0) {
+        alert('Seu carrinho esta vazio!');
+        return;
+    }
+
+    if (!validarCamposDeEntrega()) {
+        return;
+    }
+
+    const payload = montarPayloadPedido();
+    const btnMP = document.getElementById('modal-btn-acao');
+    const textoOriginal = btnMP?.innerText || 'Pagar Agora';
+
+    if (btnMP) {
+        btnMP.disabled = true;
+        btnMP.innerText = 'Gerando link de pagamento...';
+    }
 
     try {
-        const codPedido = 'JAC-' + Math.floor(1000 + Math.random() * 9000);
-
-        // Monta os itens no formato que o backend espera
-        const itensAgrupados = {};
-        carrinho.forEach(item => {
-            if (!itensAgrupados[item.id]) {
-                itensAgrupados[item.id] = { ...item, qtd: 0, presenteQtd: 0 };
-            }
-            itensAgrupados[item.id].qtd++;
-            if (item.presente) itensAgrupados[item.id].presenteQtd++;
-        });
-
-        const totalItens = carrinho.reduce((acc, item) => acc + item.preco, 0);
-        const totalFinal = totalItens + valorFreteAtual;
-
-        // Chama o backend para criar a preferência
         const response = await fetch('/api/criar-preferencia', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                codPedido,
-                itens: Object.values(itensAgrupados),
-                frete: valorFreteAtual,
-                total: totalFinal,
-                entrega,
-                endereco: entrega === 'Entrega' ? endereco : 'Retirada na loja',
-                pagamento: pag
+                codPedido: payload.codPedido,
+                itens: payload.itensMercadoPago,
+                frete: payload.frete,
+                total: payload.totalFinal,
+                entrega: payload.entrega,
+                modalidadeEntrega: payload.modalidadeEntrega,
+                freteDescricao: payload.freteDescricao,
+                freteGrupo: payload.freteGrupo,
+                endereco: payload.entrega === 'Entrega' ? payload.enderecoCompleto : 'Retirada na loja',
+                pagamento: payload.pagamento
             })
         });
 
         const data = await response.json();
 
-        if (!response.ok || !data.init_point) {
-            alert(data.error || 'Não foi possível gerar o link de pagamento. Tente novamente.');
+        const checkoutUrl = data?.checkout_url || data?.init_point || data?.sandbox_init_point;
+
+        if (!response.ok || !checkoutUrl) {
+            alert(data?.error || 'Nao foi possivel gerar o link de pagamento. Tente novamente.');
             return;
         }
 
-        // Salva o pedido no Supabase como PENDENTE antes de redirecionar
-        const tokenConfirmacao = crypto.randomUUID();
-        const { error: errPedido } = await supabaseClient.rpc('criar_pedido_com_baixa_estoque', {
-            p_code: codPedido,
-            p_itens: itensAgrupados,
-            p_endereco: entrega === 'Entrega' ? endereco : null,
-            p_frete: valorFreteAtual,
-            p_total: totalFinal,
-            p_status: 'PENDENTE',
-            p_token_confirmacao: tokenConfirmacao
-        });
-
-        if (errPedido) {
-            alert(errPedido.message?.includes('Estoque insuficiente')
-                ? 'Um ou mais itens ficaram sem estoque. Atualize e tente novamente.'
-                : 'Erro ao registrar pedido.');
+        const resultadoSalvar = await salvarPedidoNoSupabase(payload);
+        if (!resultadoSalvar.ok) {
+            exibirErroAoSalvarPedido(resultadoSalvar.error);
             return;
         }
 
-        // Limpa carrinho e redireciona para o Mercado Pago
         carrinho = [];
+        kitsCarrinhoAbertos = new Set();
         valorFreteAtual = 0;
         freteCalculado = false;
-        document.getElementById('cart-count').innerText = '0';
+        limparDetalhesFrete();
+        atualizarContadorCarrinho();
         fecharModal();
+        await carregarProdutos(true);
 
-        // Redireciona para o checkout do Mercado Pago
-        window.location.href = data.init_point;
-
-    } catch (err) {
-        console.error('Erro ao criar preferência MP:', err);
+        window.location.assign(checkoutUrl);
+    } catch (error) {
+        console.error('Erro ao criar preferencia MP:', error);
         alert('Erro ao conectar com o Mercado Pago. Tente novamente.');
     } finally {
         if (btnMP) {
             btnMP.disabled = false;
-            btnMP.innerHTML = `<img src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.5/mercadopago/logo__large@2x.png" style="height:20px; filter:brightness(0) invert(1);"> Pagar Online`;
-        }
-    }
-}
-
-// =====================================================================
-
-async function finalizarPedido() {
-    const pag = document.getElementById('metodo-pagamento').value;
-    const entrega = document.getElementById('metodo-entrega').value;
-    const endereco = document.getElementById('input-endereco').value.trim();
-    const codPedido = 'JAC-' + Math.floor(1000 + Math.random() * 9000);
-
-    if (entrega === 'Entrega' && !endereco) {
-        alert("Informe o endereço para entrega.");
-        return;
-    }
-
-    const itensAgrupados = {};
-    carrinho.forEach(item => {
-        if (!itensAgrupados[item.id]) {
-            itensAgrupados[item.id] = { ...item, qtd: 0, presenteQtd: 0 };
-        }
-        itensAgrupados[item.id].qtd++;
-        if (item.presente) itensAgrupados[item.id].presenteQtd++;
-    });
-
-    let totalGeral = 0;
-    for (const i of Object.values(itensAgrupados)) {
-        totalGeral += i.preco * i.qtd;
-
-        const produtoAtualizado = produtosLocais.find(produto => produto.id == i.id);
-        if (!produtoAtualizado || i.qtd > Number(produtoAtualizado.estoque || 0)) {
-            alert(`🐊 Estoque insuficiente para ${i.nome}. Atualize a página e tente novamente.`);
-            await carregarProdutos();
-            return;
-        }
-    }
-
-    const totalFinal = totalGeral + valorFreteAtual;
-    const tokenConfirmacao = crypto.randomUUID();
-
-    const payloadPedido = {
-        p_code: codPedido,
-        p_itens: itensAgrupados,
-        p_endereco: entrega === 'Entrega' ? endereco : null,
-        p_frete: valorFreteAtual,
-        p_total: totalFinal,
-        p_status: 'PENDENTE',
-        p_token_confirmacao: tokenConfirmacao
-    };
-
-    const botaoFinalizar = document.getElementById('modal-btn-acao');
-    const textoOriginalBotao = botaoFinalizar?.innerText || '🚀 Finalizar no WhatsApp';
-    if (botaoFinalizar) {
-        botaoFinalizar.disabled = true;
-        botaoFinalizar.innerText = 'Salvando pedido...';
-    }
-
-    try {
-        const { error } = await supabaseClient.rpc('criar_pedido_com_baixa_estoque', payloadPedido);
-
-        if (error) {
-            console.error("Erro ao salvar pedido e baixar estoque:", error);
-            alert(error.message?.includes('Estoque insuficiente')
-                ? 'Um ou mais itens ficaram sem estoque. Atualize a página e tente novamente.'
-                : 'Erro ao registrar pedido. Tente novamente.');
-            await carregarProdutos();
-            return;
-        }
-
-        await carregarProdutos();
-
-        let msg = "";
-        msg += "🐊 *PEDIDO JACARÉ UTILIDADES*\n";
-        msg += "🆔 *CÓDIGO:* " + codPedido + "\n\n";
-
-        Object.values(itensAgrupados).forEach(i => {
-            const sub = i.preco * i.qtd;
-            let txtPresente = i.presenteQtd > 0 ? ` _(🎁 ${i.presenteQtd} para presente)_` : '';
-            msg += `• *(${i.qtd}x)* ${i.nome}${txtPresente} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
-        });
-
-        msg += `\n*TOTAL:* R$ ${totalFinal.toFixed(2).replace('.', ',')}\n`;
-        msg += `*PAGAMENTO:* ${pag}\n`;
-        msg += `*TIPO:* ${entrega}\n`;
-
-        if (entrega === 'Entrega') {
-            msg += `*ENDEREÇO:* ${endereco.toUpperCase()}\n`;
-        }
-
-        msg += `\n É um sucesso!\n\n`;
-
-        const msgCodificada = encodeURIComponent(msg);
-
-        carrinho = [];
-        valorFreteAtual = 0;
-        document.getElementById('cart-count').innerText = '0';
-        fecharModal();
-
-        window.open(`https://wa.me/31998997812?text=${msgCodificada}`, '_blank');
-    } finally {
-        if (botaoFinalizar) {
-            botaoFinalizar.disabled = false;
-            botaoFinalizar.innerText = textoOriginalBotao;
+            btnMP.innerText = textoOriginal;
         }
     }
 }
 
 function fecharModal() {
     document.getElementById('modal-produto').style.display = 'none';
-
-    // Esconde o botão MP ao fechar
-    const btnMP = document.getElementById('btn-mercado-pago');
-    if (btnMP) btnMP.style.display = 'none';
 }
 
 function toggleEndereco() {
     const metodo = document.getElementById('metodo-entrega').value;
     const campoEndereco = document.getElementById('campo-endereco');
     const avisoHorario = document.getElementById('aviso-horario');
-    const selectPag = document.getElementById('metodo-pagamento');
-    const optDinheiro = selectPag.querySelector('option[value="Dinheiro"]');
+    const labelTipoEntrega = document.getElementById('label-tipo-entrega');
 
     if (metodo === 'Entrega') {
         campoEndereco.style.display = 'block';
+        if (labelTipoEntrega) labelTipoEntrega.style.display = 'block';
         if (avisoHorario) avisoHorario.style.display = 'none';
-        if (optDinheiro) optDinheiro.style.display = 'none';
-        if (selectPag.value === 'Dinheiro') selectPag.value = 'Pix';
         marcarFreteComoPendente();
     } else {
         campoEndereco.style.display = 'none';
+        if (labelTipoEntrega) labelTipoEntrega.style.display = 'none';
         if (avisoHorario) avisoHorario.style.display = 'block';
-        if (optDinheiro) optDinheiro.style.display = 'block';
-        valorFreteAtual = 0;
-        freteCalculado = false;
-        atualizarTotalComFrete();
+        marcarFreteComoPendente();
     }
+
+    atualizarSelecaoVisualEntrega();
+    atualizarInfoTipoEntrega();
+    renderizarResumoCheckout();
 }
 
 function compartilharProduto() {
     if (!produtoAtualModal) return;
 
-    const texto = `🐊 Olhe o que achei na Jacaré Utilidades!\n\n*${produtoAtualModal.nome}*\nPreço: R$ ${produtoAtualModal.preco.toFixed(2).replace('.', ',')}\n\nConfira: ${window.location.href}`;
+    const texto = `Olhe o que achei na Jacare Utilidades!\n\n${produtoAtualModal.nome}\nPreco: ${formatarMoeda(produtoAtualModal.preco)}\n\nConfira: ${window.location.href}`;
 
     if (navigator.share) {
         navigator.share({
-            title: 'Jacaré Utilidades',
+            title: 'Jacare Utilidades',
             text: texto,
             url: window.location.href
         }).catch(console.error);
@@ -696,19 +1654,44 @@ function configurarEventosFrete() {
     const inputComplemento = document.getElementById('input-complemento');
     const inputCidade = document.getElementById('input-cidade');
     const metodoEntrega = document.getElementById('metodo-entrega');
+    const tipoEntrega = document.getElementById('tipo-entrega');
     const btnCalcularFrete = document.getElementById('btn-calcular-frete');
 
     if (inputEndereco) inputEndereco.addEventListener('input', marcarFreteComoPendente);
     if (inputNumero) inputNumero.addEventListener('input', marcarFreteComoPendente);
-    if (inputBairro) inputBairro.addEventListener('input', marcarFreteComoPendente);
+    if (inputBairro) {
+        inputBairro.addEventListener('input', () => {
+            atualizarSugestaoDeBairro();
+            marcarFreteComoPendente();
+        });
+        inputBairro.addEventListener('blur', atualizarSugestaoDeBairro);
+    }
     if (inputComplemento) inputComplemento.addEventListener('input', marcarFreteComoPendente);
     if (inputCidade) inputCidade.addEventListener('change', marcarFreteComoPendente);
+    if (tipoEntrega) tipoEntrega.addEventListener('change', marcarFreteComoPendente);
 
-    if (metodoEntrega) metodoEntrega.addEventListener('change', toggleEndereco);
-    if (btnCalcularFrete) btnCalcularFrete.addEventListener('click', calcularFrete);
+    if (metodoEntrega) {
+        metodoEntrega.addEventListener('change', toggleEndereco);
+    }
+
+    if (btnCalcularFrete) {
+        btnCalcularFrete.addEventListener('click', calcularFrete);
+    }
+
+    const lista = document.getElementById('lista-bairros-sete-lagoas');
+    if (lista) {
+        lista.innerHTML = BAIRROS_ECONOMICOS.map(bairro => `<option value="${bairro}"></option>`).join('');
+    }
+
+    toggleEndereco();
+    atualizarSelecaoVisualEntrega();
+    atualizarInfoTipoEntrega();
+    atualizarAjudaFrete();
+    atualizarSugestaoDeBairro();
+    renderizarResumoCheckout();
 }
 
-carregarProdutos();
+carregarProdutos(true);
 carregarBanners();
 
 document.addEventListener('DOMContentLoaded', () => {

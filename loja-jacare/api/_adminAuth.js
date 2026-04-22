@@ -41,14 +41,3 @@ export function isValidAdminCookie(cookieHeader = '') {
 
   return cookies[COOKIE_NAME] === expected;
 }
-
-export function ensureAdminRequest(req, res) {
-  const cookieHeader = req.headers.cookie || '';
-
-  if (!isValidAdminCookie(cookieHeader)) {
-    res.status(401).json({ ok: false, error: 'Sessão administrativa inválida.' });
-    return false;
-  }
-
-  return true;
-}
