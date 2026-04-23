@@ -272,6 +272,11 @@
                     <span id="label-total">Total</span>: <span id="resumo-total-geral">R$ 0,00</span>
                 </div>
 
+                <!-- Área do Checkout Brick (Transparente) — aparece após clicar em Pagar -->
+                <div id="area-brick-pagamento" style="display:none; margin-top:16px;">
+                    <div id="brick-container"></div>
+                </div>
+
                 <button id="modal-btn-acao" class="add-btn"></button>
             </div>
         </div>
@@ -328,6 +333,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SDK do Mercado Pago Bricks (Checkout Transparente) -->
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <script src="kits.js"></script>
     <script src="script.js"></script>
 </body>

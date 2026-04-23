@@ -1531,6 +1531,16 @@ function removerDoCarrinho(index) {
     abrirCarrinho();
 }
 
+// ================================================================
+// CHECKOUT BRICKS — Mercado Pago Transparente
+// ================================================================
+
+// Sua PUBLIC KEY do Mercado Pago (começa com APP_USR- ou TEST-)
+// ⚠️  Substitua pelo valor real. Esta é a chave PÚBLICA, pode ficar no frontend.
+const MP_PUBLIC_KEY = 'APP_USR-9b8a62c5-303e-4f34-88d8-9631ec653899';
+
+let brickController = null; // guarda referência para destruir ao fechar modal
+
 async function pagarMercadoPago() {
     if (carrinho.length === 0) {
         alert('Seu carrinho esta vazio!');
@@ -1547,10 +1557,11 @@ async function pagarMercadoPago() {
 
     if (btnMP) {
         btnMP.disabled = true;
-        btnMP.innerText = 'Gerando link de pagamento...';
+        btnMP.innerText = 'Preparando pagamento...';
     }
 
     try {
+        // 1. Cria a preferência no backend — recebe o preference_id
         const response = await fetch('/api/criar-preferencia', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1570,33 +1581,27 @@ async function pagarMercadoPago() {
 
         const data = await response.json();
 
-        const checkoutUrl = data?.checkout_url || data?.init_point || data?.sandbox_init_point;
-
-        if (!response.ok || !checkoutUrl) {
-            alert(data?.error || 'Nao foi possivel gerar o link de pagamento. Tente novamente.');
+        if (!response.ok || !data.preference_id) {
+            alert(data?.error || 'Nao foi possivel iniciar o pagamento. Tente novamente.');
             return;
         }
 
+        // 2. Salva o pedido no Supabase como PENDENTE antes de mostrar o formulário
         const resultadoSalvar = await salvarPedidoNoSupabase(payload);
         if (!resultadoSalvar.ok) {
             exibirErroAoSalvarPedido(resultadoSalvar.error);
             return;
         }
 
-        carrinho = [];
-        kitsCarrinhoAbertos = new Set();
-        valorFreteAtual = 0;
-        freteCalculado = false;
-        limparDetalhesFrete();
-        atualizarContadorCarrinho();
-        fecharModal();
-        await carregarProdutos(true);
+        // 3. Esconde o botão e mostra o Brick de pagamento
+        if (btnMP) btnMP.style.display = 'none';
+        document.getElementById('modal-footer-preco').style.display = 'none';
 
-        window.location.assign(checkoutUrl);
+        await renderizarBrickPagamento(data.preference_id, payload);
+
     } catch (error) {
-        console.error('Erro ao criar preferencia MP:', error);
+        console.error('Erro ao iniciar pagamento:', error);
         alert('Erro ao conectar com o Mercado Pago. Tente novamente.');
-    } finally {
         if (btnMP) {
             btnMP.disabled = false;
             btnMP.innerText = textoOriginal;
@@ -1604,8 +1609,118 @@ async function pagarMercadoPago() {
     }
 }
 
+async function renderizarBrickPagamento(preferenceId, payload) {
+    const areaBrick = document.getElementById('area-brick-pagamento');
+    const container = document.getElementById('brick-container');
+
+    if (!areaBrick || !container) return;
+
+    // Limpa brick anterior se existir
+    if (brickController) {
+        await brickController.unmount();
+        brickController = null;
+    }
+    container.innerHTML = '';
+    areaBrick.style.display = 'block';
+
+    const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+    const bricks = mp.bricks();
+
+    const metodo = document.getElementById('metodo-pagamento')?.value || 'Pix';
+
+    // Configura quais métodos mostrar com base na escolha do cliente
+    const customization = {
+        paymentMethods: {
+            // Habilita Pix
+            bankTransfer: metodo === 'Pix' ? 'all' : 'none',
+            // Habilita cartão de crédito e débito
+            creditCard: metodo === 'Cartao' ? 'all' : 'none',
+            debitCard: metodo === 'Cartao' ? 'all' : 'none',
+            // Desabilita boleto e saldo MP
+            ticket: 'none',
+            mercadoPago: 'none'
+        },
+        visual: {
+            style: {
+                theme: 'default',
+                customVariables: {
+                    baseColor: '#008037',
+                    buttonTextColor: '#ffffff'
+                }
+            }
+        }
+    };
+
+    brickController = await bricks.create('payment', 'brick-container', {
+        initialization: {
+            amount: payload.totalFinal,
+            preferenceId
+        },
+        customization,
+        callbacks: {
+            onReady: () => {
+                console.log('Brick pronto');
+            },
+            onSubmit: async ({ selectedPaymentMethod, formData }) => {
+                // Brick envia os dados do pagamento para o MP automaticamente
+                // quando usa preferenceId — apenas precisa confirmar o resultado
+                return new Promise((resolve, reject) => {
+                    fetch('/api/processar-pagamento', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            formData,
+                            codPedido: payload.codPedido
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        if (res.sucesso) {
+                            // Limpa o carrinho e mostra sucesso
+                            limparCarrinhoAposCompra();
+                            window.location.href = `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
+                            resolve();
+                        } else {
+                            reject(new Error(res.erro || 'Erro no pagamento'));
+                        }
+                    })
+                    .catch(reject);
+                });
+            },
+            onError: (error) => {
+                console.error('Brick error:', error);
+            }
+        }
+    });
+}
+
+function limparCarrinhoAposCompra() {
+    carrinho = [];
+    kitsCarrinhoAbertos = new Set();
+    valorFreteAtual = 0;
+    freteCalculado = false;
+    limparDetalhesFrete();
+    atualizarContadorCarrinho();
+}
+
+
+
 function fecharModal() {
     document.getElementById('modal-produto').style.display = 'none';
+
+    // Destrói o Brick para não vazar estado entre aberturas
+    if (brickController) {
+        brickController.unmount().catch(() => {});
+        brickController = null;
+    }
+    const areaBrick = document.getElementById('area-brick-pagamento');
+    if (areaBrick) areaBrick.style.display = 'none';
+
+    // Reexibe o botão e o total caso o modal seja reaberto
+    const btnMP = document.getElementById('modal-btn-acao');
+    if (btnMP) { btnMP.style.display = 'block'; btnMP.disabled = false; }
+    const footer = document.getElementById('modal-footer-preco');
+    if (footer) footer.style.display = 'flex';
 }
 
 function toggleEndereco() {

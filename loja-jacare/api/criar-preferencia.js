@@ -15,49 +15,6 @@ function obterBaseUrl(req) {
     return host ? `${proto}://${host}` : '';
 }
 
-// Mapeia o método escolhido pelo cliente para os filtros do Mercado Pago
-function obterFiltrosPagamento(pagamento) {
-    const metodo = String(pagamento || '').toLowerCase();
-
-    if (metodo === 'pix') {
-        return {
-            excluded_payment_methods: [],
-            excluded_payment_types: [
-                { id: 'credit_card' },
-                { id: 'debit_card' },
-                { id: 'ticket' },
-                { id: 'bank_transfer' }
-            ],
-            installments: 1
-        };
-    }
-
-    if (metodo === 'cartão' || metodo === 'cartao') {
-        return {
-            excluded_payment_methods: [],
-            excluded_payment_types: [
-                { id: 'ticket' },
-                { id: 'bank_transfer' }   // exclui Pix e boleto
-            ]
-        };
-    }
-
-    if (metodo === 'dinheiro') {
-        return {
-            excluded_payment_methods: [],
-            excluded_payment_types: [
-                { id: 'credit_card' },
-                { id: 'debit_card' },
-                { id: 'bank_transfer' }
-            ],
-            installments: 1
-        };
-    }
-
-    // Sem filtro — mostra todos os métodos disponíveis
-    return {};
-}
-
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Metodo nao permitido' });
@@ -73,15 +30,8 @@ export default async function handler(req, res) {
         });
 
         const {
-            codPedido,
-            itens,
-            frete,
-            entrega,
-            endereco,
-            pagamento,
-            modalidadeEntrega,
-            freteDescricao,
-            freteGrupo
+            codPedido, itens, frete, entrega, endereco,
+            pagamento, modalidadeEntrega, freteDescricao, freteGrupo
         } = req.body || {};
 
         if (!codPedido || !Array.isArray(itens) || itens.length === 0) {
@@ -113,42 +63,23 @@ export default async function handler(req, res) {
             items: itensMercadoPago,
             external_reference: codPedido,
             statement_descriptor: 'Jacare Utilidades',
-            auto_return: 'approved',
-            payment_methods: obterFiltrosPagamento(pagamento),
-            metadata: {
-                pedido: codPedido,
-                entrega,
-                modalidadeEntrega,
-                freteGrupo,
-                endereco,
-                pagamento
-            },
+            metadata: { pedido: codPedido, entrega, modalidadeEntrega, freteGrupo, endereco, pagamento },
             expires: true,
             expiration_date_from: new Date().toISOString(),
             expiration_date_to: new Date(Date.now() + 60 * 60 * 1000).toISOString()
         };
 
         if (siteUrl) {
-            body.back_urls = {
-                success: `${siteUrl}/pagamento-sucesso.html?pedido=${codPedido}`,
-                failure: `${siteUrl}/pagamento-falha.html?pedido=${codPedido}`,
-                pending: `${siteUrl}/pagamento-pendente.html?pedido=${codPedido}`
-            };
             body.notification_url = `${siteUrl}/api/webhook-mp`;
         }
 
         const result = await preference.create({ body });
 
-        return res.status(200).json({
-            id: result.id,
-            init_point: result.init_point,
-            sandbox_init_point: result.sandbox_init_point,
-            checkout_url: result.init_point || result.sandbox_init_point || null
-        });
+        // Retorna apenas o preference_id — é o que o Checkout Brick precisa
+        return res.status(200).json({ preference_id: result.id });
+
     } catch (error) {
         console.error('Erro ao criar preferencia MP:', error);
-        return res.status(500).json({
-            error: error?.message || 'Erro ao criar preferencia de pagamento.'
-        });
+        return res.status(500).json({ error: error?.message || 'Erro ao criar preferencia de pagamento.' });
     }
 }
