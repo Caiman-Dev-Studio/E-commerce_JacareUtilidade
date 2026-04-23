@@ -1533,13 +1533,13 @@ function removerDoCarrinho(index) {
 
 // ================================================================
 // CHECKOUT BRICKS — Mercado Pago Transparente
+// ⚠️  Troque pela sua PUBLIC KEY (começa com APP_USR- ou TEST-)
+// Pegue em: mercadopago.com.br/developers → Credenciais
 // ================================================================
-
-// Sua PUBLIC KEY do Mercado Pago (começa com APP_USR- ou TEST-)
-// ⚠️  Substitua pelo valor real. Esta é a chave PÚBLICA, pode ficar no frontend.
 const MP_PUBLIC_KEY = 'APP_USR-9b8a62c5-303e-4f34-88d8-9631ec653899';
 
-let brickController = null; // guarda referência para destruir ao fechar modal
+let brickController = null;
+let payloadPedidoAtual = null;
 
 async function pagarMercadoPago() {
     if (carrinho.length === 0) {
@@ -1547,21 +1547,19 @@ async function pagarMercadoPago() {
         return;
     }
 
-    if (!validarCamposDeEntrega()) {
-        return;
-    }
+    if (!validarCamposDeEntrega()) return;
 
     const payload = montarPayloadPedido();
-    const btnMP = document.getElementById('modal-btn-acao');
-    const textoOriginal = btnMP?.innerText || 'Pagar Agora';
+    payloadPedidoAtual = payload;
 
+    const btnMP = document.getElementById('modal-btn-acao');
     if (btnMP) {
         btnMP.disabled = true;
         btnMP.innerText = 'Preparando pagamento...';
     }
 
     try {
-        // 1. Cria a preferência no backend — recebe o preference_id
+        // 1. Cria preferência no backend
         const response = await fetch('/api/criar-preferencia', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1583,115 +1581,142 @@ async function pagarMercadoPago() {
 
         if (!response.ok || !data.preference_id) {
             alert(data?.error || 'Nao foi possivel iniciar o pagamento. Tente novamente.');
+            if (btnMP) { btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
             return;
         }
 
-        // 2. Salva o pedido no Supabase como PENDENTE antes de mostrar o formulário
+        // 2. Salva pedido no Supabase como PENDENTE
         const resultadoSalvar = await salvarPedidoNoSupabase(payload);
         if (!resultadoSalvar.ok) {
             exibirErroAoSalvarPedido(resultadoSalvar.error);
+            if (btnMP) { btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
             return;
         }
 
-        // 3. Esconde o botão e mostra o Brick de pagamento
+        // 3. Esconde botão e total, mostra Brick
         if (btnMP) btnMP.style.display = 'none';
-        document.getElementById('modal-footer-preco').style.display = 'none';
+        const footer = document.getElementById('modal-footer-preco');
+        if (footer) footer.style.display = 'none';
 
         await renderizarBrickPagamento(data.preference_id, payload);
 
     } catch (error) {
         console.error('Erro ao iniciar pagamento:', error);
         alert('Erro ao conectar com o Mercado Pago. Tente novamente.');
-        if (btnMP) {
-            btnMP.disabled = false;
-            btnMP.innerText = textoOriginal;
-        }
+        if (btnMP) { btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
     }
 }
 
 async function renderizarBrickPagamento(preferenceId, payload) {
     const areaBrick = document.getElementById('area-brick-pagamento');
     const container = document.getElementById('brick-container');
+    if (!areaBrick || !container) {
+        console.error('Containers do Brick nao encontrados no HTML.');
+        return;
+    }
 
-    if (!areaBrick || !container) return;
-
-    // Limpa brick anterior se existir
+    // Destroi brick anterior se existir
     if (brickController) {
-        await brickController.unmount();
+        try { await brickController.unmount(); } catch(e) {}
         brickController = null;
     }
     container.innerHTML = '';
     areaBrick.style.display = 'block';
 
-    const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
-    const bricks = mp.bricks();
-
     const metodo = document.getElementById('metodo-pagamento')?.value || 'Pix';
+    const isPix = metodo === 'Pix';
+    const isCartao = metodo === 'Cartao' || metodo === 'Cartão';
 
-    // Configura quais métodos mostrar com base na escolha do cliente
-    const customization = {
-        paymentMethods: {
-            // Habilita Pix
-            bankTransfer: metodo === 'Pix' ? 'all' : 'none',
-            // Habilita cartão de crédito e débito
-            creditCard: metodo === 'Cartao' ? 'all' : 'none',
-            debitCard: metodo === 'Cartao' ? 'all' : 'none',
-            // Desabilita boleto e saldo MP
-            ticket: 'none',
-            mercadoPago: 'none'
-        },
-        visual: {
-            style: {
-                theme: 'default',
-                customVariables: {
-                    baseColor: '#008037',
-                    buttonTextColor: '#ffffff'
+    try {
+        const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+        const bricks = mp.bricks();
+
+        brickController = await bricks.create('payment', 'brick-container', {
+            initialization: {
+                amount: payload.totalFinal,
+                preferenceId,
+                // Pré-seleciona o método que o cliente já escolheu
+                preferenceType: isPix ? 'bank_transfer' : 'credit_card'
+            },
+            customization: {
+                paymentMethods: {
+                    bankTransfer: isPix ? 'all' : 'none',
+                    creditCard: isCartao ? 'all' : 'none',
+                    debitCard: isCartao ? 'all' : 'none',
+                    ticket: 'none',
+                    mercadoPago: 'none'
+                },
+                visual: {
+                    style: {
+                        theme: 'default',
+                        customVariables: {
+                            baseColor: '#008037',
+                            buttonTextColor: '#ffffff'
+                        }
+                    },
+                    hideFormTitle: true,
+                    hidePaymentButton: false
+                }
+            },
+            callbacks: {
+                onReady: () => console.log('Brick pronto'),
+                onSubmit: async ({ formData }) => {
+                    return new Promise((resolve, reject) => {
+                        fetch('/api/processar-pagamento', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ formData, codPedido: payload.codPedido })
+                        })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.sucesso) {
+                                limparCarrinhoAposCompra();
+                                window.location.href = `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
+                                resolve();
+                            } else {
+                                alert(res.erro || 'Pagamento nao aprovado. Tente novamente.');
+                                reject(new Error(res.erro));
+                            }
+                        })
+                        .catch(err => {
+                            alert('Erro ao processar pagamento. Tente novamente.');
+                            reject(err);
+                        });
+                    });
+                },
+                onError: (error) => {
+                    console.error('Brick error:', error);
+                    // Erro 400 geralmente = chave Pix nao cadastrada no MP ou public key errada
+                    const areaBrick = document.getElementById('area-brick-pagamento');
+                    if (areaBrick) {
+                        areaBrick.innerHTML = `
+                            <div style="text-align:center; padding:20px; color:#c62828;">
+                                <div style="font-size:2rem;">⚠️</div>
+                                <p><strong>Erro ao carregar o formulario de pagamento.</strong></p>
+                                <p style="font-size:0.85rem; color:#666;">
+                                    ${isPix ? 'Verifique se voce tem uma chave Pix cadastrada no Mercado Pago.' : 'Tente novamente ou escolha outra forma de pagamento.'}
+                                </p>
+                                <button class="add-btn" style="margin-top:12px; width:auto; padding:12px 24px;"
+                                    onclick="voltarParaCheckout()">Voltar</button>
+                            </div>`;
+                    }
                 }
             }
-        }
-    };
+        });
+    } catch(e) {
+        console.error('Erro ao criar Brick:', e);
+    }
+}
 
-    brickController = await bricks.create('payment', 'brick-container', {
-        initialization: {
-            amount: payload.totalFinal,
-            preferenceId
-        },
-        customization,
-        callbacks: {
-            onReady: () => {
-                console.log('Brick pronto');
-            },
-            onSubmit: async ({ selectedPaymentMethod, formData }) => {
-                // Brick envia os dados do pagamento para o MP automaticamente
-                // quando usa preferenceId — apenas precisa confirmar o resultado
-                return new Promise((resolve, reject) => {
-                    fetch('/api/processar-pagamento', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            formData,
-                            codPedido: payload.codPedido
-                        })
-                    })
-                    .then(res => res.json())
-                    .then(res => {
-                        if (res.sucesso) {
-                            // Limpa o carrinho e mostra sucesso
-                            limparCarrinhoAposCompra();
-                            window.location.href = `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
-                            resolve();
-                        } else {
-                            reject(new Error(res.erro || 'Erro no pagamento'));
-                        }
-                    })
-                    .catch(reject);
-                });
-            },
-            onError: (error) => {
-                console.error('Brick error:', error);
-            }
-        }
-    });
+function voltarParaCheckout() {
+    const areaBrick = document.getElementById('area-brick-pagamento');
+    if (areaBrick) { areaBrick.style.display = 'none'; areaBrick.innerHTML = '<div id="brick-container"></div>'; }
+
+    const btnMP = document.getElementById('modal-btn-acao');
+    if (btnMP) { btnMP.style.display = 'block'; btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
+
+    const footer = document.getElementById('modal-footer-preco');
+    if (footer) footer.style.display = 'flex';
 }
 
 function limparCarrinhoAposCompra() {
@@ -1703,25 +1728,30 @@ function limparCarrinhoAposCompra() {
     atualizarContadorCarrinho();
 }
 
-
-
 function fecharModal() {
     document.getElementById('modal-produto').style.display = 'none';
 
-    // Destrói o Brick para não vazar estado entre aberturas
+    // Destroi o Brick com segurança
     if (brickController) {
-        brickController.unmount().catch(() => {});
+        try { brickController.unmount(); } catch(e) {}
         brickController = null;
     }
-    const areaBrick = document.getElementById('area-brick-pagamento');
-    if (areaBrick) areaBrick.style.display = 'none';
 
-    // Reexibe o botão e o total caso o modal seja reaberto
+    // Reseta a area do Brick
+    const areaBrick = document.getElementById('area-brick-pagamento');
+    if (areaBrick) {
+        areaBrick.style.display = 'none';
+        areaBrick.innerHTML = '<div id="brick-container"></div>';
+    }
+
+    // Restaura botao e total para proxima abertura
     const btnMP = document.getElementById('modal-btn-acao');
     if (btnMP) { btnMP.style.display = 'block'; btnMP.disabled = false; }
     const footer = document.getElementById('modal-footer-preco');
     if (footer) footer.style.display = 'flex';
 }
+
+
 
 function toggleEndereco() {
     const metodo = document.getElementById('metodo-entrega').value;
