@@ -1536,7 +1536,7 @@ function removerDoCarrinho(index) {
 // ⚠️  Troque pela sua PUBLIC KEY real abaixo
 // Pegue em: mercadopago.com.br/developers → Credenciais
 // ================================================================
-const MP_PUBLIC_KEY = 'SUA_PUBLIC_KEY_AQUI';
+const MP_PUBLIC_KEY = 'APP_USR-9b8a62c5-303e-4f34-88d8-9631ec653899';
 
 let brickController = null;
 
