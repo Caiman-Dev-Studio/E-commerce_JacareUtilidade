@@ -1632,14 +1632,10 @@ async function renderizarBrickPagamento(preferenceId, payload) {
             },
             customization: {
                 paymentMethods: {
-                    // Pix = transferência bancária
-                    bankTransfer: isPix ? 'all' : 'none',
-                    // Cartão crédito e débito
-                    creditCard: isCartao ? 'all' : 'none',
-                    debitCard: isCartao ? 'all' : 'none',
-                    // Boleto desabilitado
-                    ticket: 'none'
-                    // ⚠️ NÃO incluir mercadoPago aqui — campo não aceita 'none'
+                    // Só inclui o método que o cliente escolheu
+                    // Campos com 'none' causam erro — simplesmente não incluir
+                    ...(isPix    ? { bankTransfer: 'all' } : {}),
+                    ...(isCartao ? { creditCard: 'all', debitCard: 'all' } : {})
                 },
                 visual: {
                     style: {
