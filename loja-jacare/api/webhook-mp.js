@@ -1,12 +1,3 @@
-// =============================================================
-// api/webhook-mp.js  (Vercel Serverless Function)
-// =============================================================
-// Recebe notificações do Mercado Pago quando um pagamento
-// é aprovado, recusado ou fica pendente.
-// Configure a URL deste webhook no painel do MP:
-//   https://www.mercadopago.com.br/developers/pt/docs/notifications/webhooks
-// =============================================================
-
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,57 +7,93 @@ const client = new MercadoPagoConfig({
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // chave de SERVICE (não a publishable!)
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
-  // Mercado Pago envia POST com o tipo de notificação
+  // MP também envia GET para validar a URL — responde 200
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).end();
   }
 
   try {
-    const { type, data } = req.body;
+    // Log completo do que chegou — ver no Vercel Functions → Logs
+    console.log('=== WEBHOOK MP RECEBIDO ===');
+    console.log('Headers:', JSON.stringify(req.headers));
+    console.log('Body:', JSON.stringify(req.body));
 
-    // Só processa notificações de pagamento
+    const body = req.body || {};
+
+    // O MP pode enviar de dois formatos diferentes
+    // Formato 1: { type: 'payment', data: { id: '123' } }
+    // Formato 2: { topic: 'payment', id: '123' }
+    const type = body.type || body.topic;
+    const paymentId = body.data?.id || body.id;
+
+    console.log(`Tipo: ${type} | Payment ID: ${paymentId}`);
+
     if (type !== 'payment') {
+      console.log('Ignorando notificação não relacionada a pagamento:', type);
       return res.status(200).json({ ok: true });
     }
 
-    const paymentId = data?.id;
     if (!paymentId) {
-      return res.status(400).json({ error: 'ID de pagamento ausente' });
+      console.error('ID de pagamento ausente no body:', body);
+      return res.status(200).json({ ok: true }); // retorna 200 para MP não retentar
     }
 
-    // Busca os detalhes do pagamento na API do MP
+    // Busca detalhes do pagamento
     const payment = new Payment(client);
     const pagamento = await payment.get({ id: paymentId });
 
-    const status = pagamento.status;           // approved | rejected | pending
-    const codPedido = pagamento.external_reference; // nosso código JAC-XXXX
+    const status = pagamento.status;
+    const codPedido = pagamento.external_reference;
 
-    console.log(`Pagamento ${paymentId} | Pedido ${codPedido} | Status: ${status}`);
+    console.log(`Status: ${status} | Pedido: ${codPedido} | ID: ${paymentId}`);
 
     if (status === 'approved') {
-      // Marca o pedido como PRONTO no Supabase
-      const { error } = await supabase
+      let codPedido = pagamento.external_reference;
+
+      // Se external_reference vier nulo, busca pelo pagamento_mp_id que salvamos antes
+      if (!codPedido) {
+        console.log('external_reference nulo, buscando pedido pelo pagamento_mp_id...');
+        const { data: pedidoEncontrado } = await supabase
+          .from('pedidos')
+          .select('code')
+          .eq('pagamento_mp_id', String(paymentId))
+          .single();
+
+        codPedido = pedidoEncontrado?.code;
+        console.log('Pedido encontrado pelo ID do pagamento:', codPedido);
+      }
+
+      if (!codPedido) {
+        console.error('Nao foi possivel identificar o pedido para o pagamento:', paymentId);
+        return res.status(200).json({ ok: false, error: 'Pedido nao encontrado' });
+      }
+
+      const { data, error } = await supabase
         .from('pedidos')
         .update({ status: 'PRONTO', pagamento_mp_id: String(paymentId) })
-        .eq('code', codPedido);
+        .eq('code', codPedido)
+        .select();
 
       if (error) {
-        console.error('Erro ao atualizar pedido no Supabase:', error);
-        return res.status(500).json({ error: 'Erro ao atualizar pedido' });
+        console.error('Erro Supabase:', JSON.stringify(error));
+        return res.status(200).json({ ok: false, error: error.message });
       }
-    }
 
-    // Para outros status (rejected, pending) você pode registrar
-    // ou enviar notificação, mas não muda o status do pedido aqui.
+      console.log(`Pedido ${codPedido} atualizado para PRONTO. Rows afetadas:`, data?.length);
+    }
 
     return res.status(200).json({ ok: true });
 
   } catch (err) {
-    console.error('Erro no webhook MP:', err);
-    return res.status(500).json({ error: 'Erro interno' });
+    console.error('Erro no webhook:', err.message, err.stack);
+    return res.status(200).json({ ok: false, error: err.message });
   }
 }
