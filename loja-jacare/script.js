@@ -1628,12 +1628,16 @@ async function renderizarBrickPagamento(preferenceId, payload) {
         brickController = await bricks.create('payment', 'brick-container', {
             initialization: {
                 amount: payload.totalFinal,
-                preferenceId
+                preferenceId,
+                mercadoPago: {
+                    customization: {
+                        visual: { hidePaymentButton: false },
+                        paymentMethods: { maxInstallments: 1 }
+                    }
+                }
             },
             customization: {
                 paymentMethods: {
-                    // Só inclui o método que o cliente escolheu
-                    // Campos com 'none' causam erro — simplesmente não incluir
                     ...(isPix    ? { bankTransfer: 'all' } : {}),
                     ...(isCartao ? { creditCard: 'all', debitCard: 'all' } : {})
                 },
