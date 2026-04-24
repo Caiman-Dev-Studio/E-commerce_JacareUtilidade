@@ -25,29 +25,45 @@ export default async function handler(req, res) {
             return res.status(400).json({ sucesso: false, erro: 'Dados incompletos.' });
         }
 
-        // Envia o pagamento para o Mercado Pago
         const payment = new Payment(client);
         const resultado = await payment.create({ body: formData });
 
         const status = resultado.status;
-        console.log(`Pagamento criado | Pedido: ${codPedido} | Status: ${status} | ID: ${resultado.id}`);
+        const paymentId = String(resultado.id);
+        console.log(`Pagamento | Pedido: ${codPedido} | Status: ${status} | ID: ${paymentId}`);
 
         if (status === 'approved') {
-            // Atualiza pedido para PRONTO direto (pagamento confirmado)
+            // Cartão aprovado na hora — marca como PRONTO
             await supabase
                 .from('pedidos')
-                .update({ status: 'PRONTO', pagamento_mp_id: String(resultado.id) })
+                .update({ status: 'PRONTO', pagamento_mp_id: paymentId })
                 .eq('code', codPedido);
 
             return res.status(200).json({ sucesso: true, status: 'approved' });
         }
 
         if (status === 'pending' || status === 'in_process') {
-            // Pix fica pendente até o cliente pagar — o webhook confirma depois
-            return res.status(200).json({ sucesso: true, status: 'pending' });
+            // Pix gerado mas ainda não pago — salva o ID do pagamento e mantém PENDENTE
+            // O webhook vai marcar como PRONTO quando o cliente pagar
+            await supabase
+                .from('pedidos')
+                .update({ pagamento_mp_id: paymentId })
+                .eq('code', codPedido);
+
+            // Retorna os dados do Pix para mostrar na tela
+            const pixData = resultado.point_of_interaction?.transaction_data;
+            return res.status(200).json({
+                sucesso: true,
+                status: 'pending',
+                pix: {
+                    qr_code: pixData?.qr_code || null,
+                    qr_code_base64: pixData?.qr_code_base64 || null,
+                    ticket_url: pixData?.ticket_url || null
+                }
+            });
         }
 
-        // Recusado ou outro status negativo
+        // Recusado
         return res.status(200).json({
             sucesso: false,
             status,

@@ -1659,14 +1659,28 @@ async function renderizarBrickPagamento(preferenceId, payload) {
                         })
                         .then(r => r.json())
                         .then(res => {
-                            if (res.sucesso) {
-                                limparCarrinhoAposCompra();
-                                window.location.href = `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
-                                resolve();
-                            } else {
+                            if (!res.sucesso) {
                                 alert(res.erro || 'Pagamento nao aprovado. Tente novamente.');
                                 reject(new Error(res.erro));
+                                return;
                             }
+
+                            if (res.status === 'approved') {
+                                // Cartão aprovado — vai direto para sucesso
+                                limparCarrinhoAposCompra();
+                                resolve();
+                                window.location.href = `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
+                                return;
+                            }
+
+                            if (res.status === 'pending') {
+                                // Pix gerado — mostra QR Code, NÃO redireciona ainda
+                                resolve();
+                                mostrarQrCodePix(res.pix, payload.codPedido);
+                                return;
+                            }
+
+                            reject(new Error('Status desconhecido'));
                         })
                         .catch(err => {
                             alert('Erro ao processar pagamento. Tente novamente.');
@@ -1704,6 +1718,76 @@ function voltarParaCheckout() {
     if (btnMP) { btnMP.style.display = 'block'; btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
     const footer = document.getElementById('modal-footer-preco');
     if (footer) footer.style.display = 'flex';
+}
+
+function mostrarQrCodePix(pix, codPedido) {
+    const areaBrick = document.getElementById('area-brick-pagamento');
+    if (!areaBrick) return;
+
+    limparCarrinhoAposCompra();
+
+    const qrImagem = pix?.qr_code_base64
+        ? `<img src="data:image/png;base64,${pix.qr_code_base64}"
+               alt="QR Code Pix"
+               style="width:200px;height:200px;display:block;margin:0 auto 16px;">`
+        : '';
+
+    const copiaCola = pix?.qr_code
+        ? `<div style="margin-top:12px;">
+               <p style="font-size:0.8rem;color:#666;margin-bottom:6px;">Ou copie o código:</p>
+               <div style="display:flex;gap:8px;align-items:center;">
+                   <input id="pix-copia-cola" type="text" readonly
+                       value="${pix.qr_code}"
+                       style="flex:1;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:0.75rem;background:#f9f9f9;">
+                   <button class="add-btn" style="width:auto;padding:10px 16px;white-space:nowrap;"
+                       onclick="copiarPixCola()">Copiar</button>
+               </div>
+           </div>`
+        : '';
+
+    areaBrick.innerHTML = `
+        <div style="text-align:center;padding:16px 8px;">
+            <div style="font-size:2.5rem;margin-bottom:8px;">📱</div>
+            <h3 style="color:#008037;margin:0 0 4px;">Pix gerado!</h3>
+            <p style="color:#666;font-size:0.9rem;margin-bottom:16px;">
+                Escaneie o QR Code ou copie o código Pix no seu banco.
+            </p>
+
+            ${qrImagem}
+
+            <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:12px;margin-bottom:12px;">
+                <p style="margin:0;font-size:0.85rem;color:#2e7d32;">
+                    ⏳ Aguardando pagamento...<br>
+                    <strong>Código do pedido: ${codPedido}</strong>
+                </p>
+            </div>
+
+            ${copiaCola}
+
+            <p style="font-size:0.75rem;color:#999;margin-top:12px;">
+                Após pagar, seu pedido será confirmado automaticamente.
+            </p>
+        </div>`;
+
+    areaBrick.style.display = 'block';
+
+    // Esconde botão e total pois o pedido já foi criado
+    const btnMP = document.getElementById('modal-btn-acao');
+    if (btnMP) btnMP.style.display = 'none';
+    const footer = document.getElementById('modal-footer-preco');
+    if (footer) footer.style.display = 'none';
+}
+
+function copiarPixCola() {
+    const input = document.getElementById('pix-copia-cola');
+    if (!input) return;
+    input.select();
+    navigator.clipboard?.writeText(input.value).then(() => {
+        alert('Código Pix copiado!');
+    }).catch(() => {
+        document.execCommand('copy');
+        alert('Código Pix copiado!');
+    });
 }
 
 function limparCarrinhoAposCompra() {
