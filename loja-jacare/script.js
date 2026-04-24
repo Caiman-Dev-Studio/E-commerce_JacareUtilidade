@@ -1759,7 +1759,7 @@ function mostrarQrCodePix(pix, codPedido) {
 
             ${qrImagem}
 
-            <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:12px;margin-bottom:12px;">
+            <div id="pix-status-box" style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;padding:12px;margin-bottom:12px;">
                 <p style="margin:0;font-size:0.85rem;color:#2e7d32;">
                     ⏳ Aguardando pagamento...<br>
                     <strong>Código do pedido: ${codPedido}</strong>
@@ -1769,17 +1769,57 @@ function mostrarQrCodePix(pix, codPedido) {
             ${copiaCola}
 
             <p style="font-size:0.75rem;color:#999;margin-top:12px;">
-                Após pagar, seu pedido será confirmado automaticamente.
+                Após pagar, você será redirecionado automaticamente.
             </p>
         </div>`;
 
     areaBrick.style.display = 'block';
 
-    // Esconde botão e total pois o pedido já foi criado
     const btnMP = document.getElementById('modal-btn-acao');
     if (btnMP) btnMP.style.display = 'none';
     const footer = document.getElementById('modal-footer-preco');
     if (footer) footer.style.display = 'none';
+
+    // Inicia polling — verifica status a cada 5s por até 10 minutos
+    iniciarPollingPix(codPedido);
+}
+
+function iniciarPollingPix(codPedido) {
+    const maxTentativas = 120; // 120 x 5s = 10 minutos
+    let tentativas = 0;
+
+    const intervalo = setInterval(async () => {
+        tentativas++;
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('pedidos')
+                .select('status')
+                .eq('code', codPedido)
+                .single();
+
+            if (error) {
+                console.error('Erro ao verificar status:', error);
+                return;
+            }
+
+            if (data?.status === 'PRONTO' || data?.status === 'ENTREGA' || data?.status === 'FINALIZADO') {
+                clearInterval(intervalo);
+                // Atualiza o box antes de redirecionar
+                const box = document.getElementById('pix-status-box');
+                if (box) box.innerHTML = '<p style="margin:0;font-size:0.85rem;color:#2e7d32;">✅ Pagamento confirmado! Redirecionando...</p>';
+                setTimeout(() => {
+                    window.location.href = `/pagamento-sucesso.html?pedido=${codPedido}`;
+                }, 1500);
+            }
+        } catch(e) {
+            console.error('Polling erro:', e);
+        }
+
+        if (tentativas >= maxTentativas) {
+            clearInterval(intervalo);
+        }
+    }, 5000);
 }
 
 function copiarPixCola() {
