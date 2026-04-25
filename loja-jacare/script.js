@@ -276,6 +276,16 @@ function atualizarInfoTipoEntrega() {
     info.style.display = 'block';
 }
 
+function exibirAvisoTurboIndisponivel() {
+    const info = document.getElementById('tipo-entrega-info');
+    if (info) {
+        info.innerHTML = '<strong>Turbo</strong><br>Essa funcao ainda nao esta disponivel no site. Escolha a entrega Economico para continuar.';
+        info.style.display = 'block';
+    }
+
+    definirStatusFrete('Entrega Turbo ainda nao disponivel no site.', '#c62828');
+}
+
 function limparErroTipoEntrega() {
     const erro = document.getElementById('tipo-entrega-erro');
     if (erro) erro.style.display = 'none';
@@ -289,6 +299,15 @@ function exibirErroTipoEntrega() {
 function selecionarTipoEntrega(tipo) {
     const input = document.getElementById('tipo-entrega');
     if (!input) return;
+
+    if (tipo === 'Turbo') {
+        input.value = '';
+        limparErroTipoEntrega();
+        atualizarSelecaoVisualEntrega();
+        marcarFreteComoPendente();
+        exibirAvisoTurboIndisponivel();
+        return;
+    }
 
     input.value = tipo;
     limparErroTipoEntrega();
@@ -544,6 +563,12 @@ function validarCamposDeEntrega() {
         return false;
     }
 
+    if (tipoEntrega === 'Turbo') {
+        exibirAvisoTurboIndisponivel();
+        alert('A entrega Turbo ainda nao esta disponivel no site. Escolha Economico para continuar.');
+        return false;
+    }
+
     if (!rua) {
         alert('Informe a rua para entrega.');
         return false;
@@ -774,6 +799,13 @@ async function calcularFrete() {
     if (!modalidadeEntrega) {
         exibirErroTipoEntrega();
         alert('Escolha Turbo ou Economico antes de calcular o frete.');
+        return;
+    }
+
+    if (modalidadeEntrega === 'Turbo') {
+        marcarFreteComoPendente();
+        exibirAvisoTurboIndisponivel();
+        alert('A entrega Turbo ainda nao esta disponivel no site. Escolha Economico para calcular o frete.');
         return;
     }
 
