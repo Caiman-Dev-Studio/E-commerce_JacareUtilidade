@@ -73,6 +73,41 @@ function addImageIfExists(doc, fileName, x, y, options = {}) {
   }
 }
 
+function drawAlligatorMark(doc, x, y) {
+  doc.save();
+  doc.circle(x + 27, y + 27, 27).fill('#ffffff');
+
+  doc.roundedRect(x + 9, y + 25, 37, 18, 9).fill('#40b94c');
+  doc.roundedRect(x + 27, y + 28, 22, 12, 6).fill('#62d35d');
+  doc.circle(x + 24, y + 25, 8).fill('#ffffff');
+  doc.circle(x + 37, y + 25, 8).fill('#ffffff');
+  doc.circle(x + 26, y + 25, 3).fill('#0b2f24');
+  doc.circle(x + 39, y + 25, 3).fill('#0b2f24');
+  doc.circle(x + 46, y + 33, 2).fill('#0b2f24');
+
+  doc.moveTo(x + 38, y + 41).lineTo(x + 42, y + 46).lineTo(x + 46, y + 41).fill('#ffffff');
+  doc.moveTo(x + 27, y + 41).lineTo(x + 31, y + 47).lineTo(x + 35, y + 41).fill('#ffffff');
+
+  doc
+    .moveTo(x + 17, y + 35)
+    .quadraticCurveTo(x + 24, y + 43, x + 35, y + 39)
+    .strokeColor('#0b2f24')
+    .lineWidth(2)
+    .stroke();
+
+  doc
+    .moveTo(x + 18, y + 17)
+    .lineTo(x + 16, y + 7)
+    .lineTo(x + 22, y + 14)
+    .lineTo(x + 28, y + 6)
+    .lineTo(x + 30, y + 17)
+    .lineTo(x + 39, y + 9)
+    .lineTo(x + 37, y + 20)
+    .fillAndStroke('#f2c94c', '#0b2f24');
+
+  doc.restore();
+}
+
 function erroColunaFinalizadoEm(error) {
   return String(error?.message || '').includes('finalizado_em');
 }
@@ -134,31 +169,31 @@ function drawHeader(doc, br, totalPedidos, totalVendas) {
   doc.rect(0, 0, width, 118).fill('#0b2f24');
   doc.rect(0, 92, width, 26).fill('#118044');
 
-  const drewLogo = addImageIfExists(doc, 'favicon.png', left, 24, {
+  doc.roundedRect(left, 18, 72, 72, 10).fill('#ffffff');
+
+  const drewLogo = addImageIfExists(doc, 'logo-jacare-pdf.jpg', left + 4, 22, {
+    fit: [64, 64],
+    align: 'center',
+    valign: 'center'
+  }) || addImageIfExists(doc, 'favicon.png', left, 24, {
     fit: [54, 54],
     align: 'center',
     valign: 'center'
   });
 
-  if (!drewLogo) {
-    doc.circle(left + 27, 51, 27).fill('#ffffff');
-    doc.fillColor('#118044').font('Helvetica-Bold').fontSize(20).text('J', left, 39, {
-      width: 54,
-      align: 'center'
-    });
-  }
+  if (!drewLogo) drawAlligatorMark(doc, left + 9, 27);
 
   doc
     .fillColor('#ffffff')
     .font('Helvetica-Bold')
     .fontSize(22)
-    .text('Jacare Utilidades', left + 68, 28, { width: 260 });
+    .text('Jacare Utilidades', left + 88, 28, { width: 240 });
 
   doc
     .fillColor('#cbe8d5')
     .font('Helvetica')
     .fontSize(9)
-    .text('Relatorio diario de pedidos finalizados', left + 70, 57, { width: 260 });
+    .text('Relatorio diario de pedidos finalizados', left + 90, 57, { width: 240 });
 
   doc
     .fillColor('#ffffff')
@@ -193,7 +228,7 @@ function drawFooter(doc, pageNumber, pageCount) {
   const { width, height } = doc.page;
   const left = doc.page.margins.left;
   const right = width - doc.page.margins.right;
-  const y = height - 52;
+  const y = height - 78;
 
   doc.save();
   doc.moveTo(left, y - 10).lineTo(right, y - 10).strokeColor('#d9e3dd').lineWidth(0.8).stroke();
@@ -203,15 +238,16 @@ function drawFooter(doc, pageNumber, pageCount) {
     .font('Helvetica')
     .fontSize(8)
     .text('Relatorio gerado automaticamente pelo painel administrativo da Jacare Utilidades.', left, y, {
-      width: 250
+      width: 250,
+      lineBreak: false
     });
 
-  const logoX = right - 150;
+  const logoX = right - 220;
   doc
     .fillColor('#5c6b63')
     .font('Helvetica')
     .fontSize(8)
-    .text('Desenvolvido por', logoX, y, { width: 72, align: 'right' });
+    .text('Desenvolvido por', logoX, y, { width: 72, align: 'right', lineBreak: false });
 
   const drewCaiman = addImageIfExists(doc, 'logo-caiman.png', logoX + 78, y - 8, {
     fit: [28, 28]
@@ -222,7 +258,8 @@ function drawFooter(doc, pageNumber, pageCount) {
     .font('Helvetica-Bold')
     .fontSize(8)
     .text('Caiman Dev Studio', drewCaiman ? logoX + 110 : logoX + 78, y, {
-      width: drewCaiman ? 60 : 92
+      width: drewCaiman ? 108 : 140,
+      lineBreak: false
     });
 
   doc
@@ -231,7 +268,8 @@ function drawFooter(doc, pageNumber, pageCount) {
     .fontSize(8)
     .text(`Pagina ${pageNumber} de ${pageCount}`, left, y + 20, {
       width: right - left,
-      align: 'center'
+      align: 'center',
+      lineBreak: false
     });
 
   doc.restore();
