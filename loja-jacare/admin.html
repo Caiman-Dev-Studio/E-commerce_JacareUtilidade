@@ -430,11 +430,11 @@ async function carregarPedidos(){
     }
 
     if(p.status === "PRONTO"){
-      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','ENTREGA')">🚚 Uber pegou</button>`
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','ENTREGA')">🚚 Saiu para entrega</button>`
     }
 
     if(p.status === "ENTREGA"){
-      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','FINALIZADO')">⚠️ Forçar finalização</button>`
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','FINALIZADO')">✅ Finalização</button>`
     }
 
     if(p.status === "FINALIZADO"){
@@ -493,31 +493,18 @@ async function marcarPronto(codigo, token){
 }
 
 async function mudarStatus(codigo, status){
-  const updateData = { status: status }
-  if(status === "FINALIZADO"){
-    updateData.finalizado_em = new Date().toISOString()
-  }
+  const r = await fetch("/api/atualizar-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ codigo, status })
+  })
 
-  const { error } = await supabaseClient
-    .from('pedidos')
-    .update(updateData)
-    .eq('code', codigo)
+  const j = await r.json().catch(() => ({}))
 
-  if(error){
-    if(status === "FINALIZADO" && String(error.message || "").includes("finalizado_em")){
-      console.warn("Coluna finalizado_em ainda nao existe. Atualizando apenas o status.", error)
-      const retry = await supabaseClient
-        .from('pedidos')
-        .update({ status: status })
-        .eq('code', codigo)
-
-      if(!retry.error){
-        carregarPedidos()
-        return
-      }
-    }
-
+  if(!r.ok || !j.sucesso){
     alert("Erro ao atualizar")
+    console.error(j)
     return
   }
 

@@ -264,12 +264,15 @@ function atualizarInfoTipoEntrega() {
     if (!tipo) {
         info.style.display = 'none';
         info.innerHTML = '';
+        info.classList.remove('delivery-info-warning');
         return;
     }
 
     if (tipo === 'Turbo') {
-        info.innerHTML = '<strong>Turbo</strong><br>Entregas liberadas em ate 2 horas apos a confirmacao do pagamento.';
+        info.classList.add('delivery-info-warning');
+        info.innerHTML = '<strong>Turbo</strong><br>Essa funcao ainda nao esta disponivel no site. Escolha a entrega Economico para continuar.';
     } else {
+        info.classList.remove('delivery-info-warning');
         info.innerHTML = '<strong>Economico</strong><br>Entregas realizadas apos as 16:00. Pedidos confirmados depois desse horario seguem no proximo dia, tambem apos as 16:00.';
     }
 
@@ -279,6 +282,7 @@ function atualizarInfoTipoEntrega() {
 function exibirAvisoTurboIndisponivel() {
     const info = document.getElementById('tipo-entrega-info');
     if (info) {
+        info.classList.add('delivery-info-warning');
         info.innerHTML = '<strong>Turbo</strong><br>Essa funcao ainda nao esta disponivel no site. Escolha a entrega Economico para continuar.';
         info.style.display = 'block';
     }
@@ -301,7 +305,7 @@ function selecionarTipoEntrega(tipo) {
     if (!input) return;
 
     if (tipo === 'Turbo') {
-        input.value = '';
+        input.value = 'Turbo';
         limparErroTipoEntrega();
         atualizarSelecaoVisualEntrega();
         marcarFreteComoPendente();
@@ -355,7 +359,7 @@ function obterDescricaoFrete() {
         return 'Entrega Economica';
     }
 
-    return 'Entrega Turbo';
+    return 'Entrega Economica';
 }
 
 function calcularDistanciaEdicao(a, b) {
@@ -471,7 +475,7 @@ function obterFreteEconomicoPorBairro(bairro, cidade) {
     if (!info) {
         return {
             ok: false,
-            error: 'Nao encontramos esse bairro no mapa da entrega economica. Confira o nome informado ou escolha a entrega Turbo.'
+            error: 'Nao encontramos esse bairro no mapa da entrega economica. Confira o nome informado.'
         };
     }
 
@@ -787,7 +791,6 @@ async function calcularFrete() {
     const numero = document.getElementById('input-numero')?.value.trim() || '';
     const bairro = document.getElementById('input-bairro')?.value.trim() || '';
     const cidade = obterCidadeSelecionada();
-    const enderecoCompleto = montarEnderecoCompleto();
     const modalidadeEntrega = obterTipoEntregaSelecionado();
     const btn = document.getElementById('btn-calcular-frete');
 
@@ -836,106 +839,39 @@ async function calcularFrete() {
         }
 
         definirStatusFrete(
-            modalidadeEntrega === 'Economica'
-                ? 'Consultando tabela da entrega economica...'
-                : 'Consultando frete Turbo...'
+            'Consultando tabela da entrega economica...'
         );
 
-        if (modalidadeEntrega === 'Economica') {
-            const resultadoEconomico = obterFreteEconomicoPorBairro(bairro, cidade);
+        const resultadoEconomico = obterFreteEconomicoPorBairro(bairro, cidade);
 
-            if (!resultadoEconomico.ok) {
-                marcarFreteComoPendente();
-                definirStatusFrete(resultadoEconomico.error, '#c62828');
-                alert(resultadoEconomico.error);
-                return;
-            }
-
-            const inputBairro = document.getElementById('input-bairro');
-            if (inputBairro && resultadoEconomico.bairro) {
-                inputBairro.value = resultadoEconomico.bairro;
-            }
-            atualizarSugestaoDeBairro();
-
-            valorFreteAtual = Number(resultadoEconomico.valor);
-            freteCalculado = true;
-            detalhesFreteAtual = {
-                modalidade: 'Economica',
-                grupo: resultadoEconomico.grupo,
-                bairro: resultadoEconomico.bairro || bairro,
-                cidade,
-                descricao: 'Entrega Economica'
-            };
-            atualizarTotalComFrete();
-
-            definirStatusFrete(
-                `Entrega Economica: ${formatarMoeda(valorFreteAtual)}${resultadoEconomico.bairro ? ` | Bairro: ${resultadoEconomico.bairro}` : ''}`,
-                'var(--green)'
-            );
-            return;
-        }
-
-        const geoResponse = await fetch(`/api/geocode?address=${encodeURIComponent(enderecoCompleto)}`);
-        const geoData = await geoResponse.json();
-
-        if (!geoResponse.ok || geoData.lat == null || geoData.lng == null) {
-            console.error('Erro ao geocodificar endereco:', geoData);
+        if (!resultadoEconomico.ok) {
             marcarFreteComoPendente();
-            definirStatusFrete(geoData?.error || 'Nao foi possivel localizar o endereco.', '#c62828');
-            alert(geoData?.error || 'Nao foi possivel localizar o endereco.');
+            definirStatusFrete(resultadoEconomico.error, '#c62828');
+            alert(resultadoEconomico.error);
             return;
         }
 
-        const body = {
-            address: enderecoCompleto,
-            street: rua,
-            number: numero,
-            neighborhood: bairro,
-            city: cidade,
-            state: 'MG',
-            country: 'Brasil',
-            full_address: enderecoCompleto,
-            dropoff_lat: Number(geoData.lat),
-            dropoff_lng: Number(geoData.lng)
+        const inputBairro = document.getElementById('input-bairro');
+        if (inputBairro && resultadoEconomico.bairro) {
+            inputBairro.value = resultadoEconomico.bairro;
+        }
+        atualizarSugestaoDeBairro();
+
+        valorFreteAtual = Number(resultadoEconomico.valor);
+        freteCalculado = true;
+        detalhesFreteAtual = {
+            modalidade: 'Economica',
+            grupo: resultadoEconomico.grupo,
+            bairro: resultadoEconomico.bairro || bairro,
+            cidade,
+            descricao: 'Entrega Economica'
         };
+        atualizarTotalComFrete();
 
-        const response = await fetch('/api/quote', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error('Erro ao calcular frete:', data);
-            marcarFreteComoPendente();
-            definirStatusFrete(data?.error || 'Falha ao calcular frete Turbo.', '#c62828');
-            alert(data?.error || 'Erro ao calcular o frete.');
-            return;
-        }
-
-        if (typeof data.shipping === 'number') {
-            valorFreteAtual = data.shipping;
-            freteCalculado = true;
-            detalhesFreteAtual = {
-                modalidade: 'Turbo',
-                grupo: '',
-                bairro,
-                cidade,
-                descricao: 'Entrega Turbo'
-            };
-            atualizarTotalComFrete();
-            definirStatusFrete(
-                `Entrega Turbo: ${formatarMoeda(data.shipping)}${data.eta ? ` | ETA: ${data.eta}` : ''}`,
-                'var(--green)'
-            );
-            return;
-        }
-
-        marcarFreteComoPendente();
-        definirStatusFrete('Nao foi possivel calcular o frete.', '#c62828');
-        alert('Nao foi possivel calcular o frete.');
+        definirStatusFrete(
+            `Entrega Economica: ${formatarMoeda(valorFreteAtual)}${resultadoEconomico.bairro ? ` | Bairro: ${resultadoEconomico.bairro}` : ''}`,
+            'var(--green)'
+        );
     } catch (error) {
         console.error('Erro na chamada de frete:', error);
         marcarFreteComoPendente();

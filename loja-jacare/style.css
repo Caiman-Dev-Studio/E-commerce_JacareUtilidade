@@ -692,6 +692,12 @@
     font-size: 0.92rem;
 }
 
+.delivery-info-card.delivery-info-warning {
+    background: #fff5f5;
+    border-color: #efb4b4;
+    color: #9f1d1d;
+}
+
 .checkout-fields-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
