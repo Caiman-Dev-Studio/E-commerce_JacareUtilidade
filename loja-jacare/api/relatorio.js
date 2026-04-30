@@ -40,20 +40,68 @@ function normalizarItens(itens) {
   return [];
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).send('Método não permitido');
+function erroColunaFinalizadoEm(error) {
+  return String(error?.message || '').includes('finalizado_em');
+}
 
-  try {
-    const { inicioUTC, fimUTC, br } = rangeDiaBrasil();
+async function buscarFinalizadosDoDia(inicioUTC, fimUTC) {
+  const porFinalizacao = await supabase
+    .from('pedidos')
+    .select('*')
+    .eq('status', 'FINALIZADO')
+    .gte('finalizado_em', inicioUTC)
+    .lte('finalizado_em', fimUTC)
+    .order('finalizado_em', { ascending: true });
 
-    // Pegando pedidos FINALIZADO do dia (pelo created_at)
-    const { data, error } = await supabase
+  if (porFinalizacao.error) {
+    if (!erroColunaFinalizadoEm(porFinalizacao.error)) {
+      return { data: null, error: porFinalizacao.error };
+    }
+
+    // Fallback temporario para nao quebrar enquanto a coluna finalizado_em nao foi criada.
+    return supabase
       .from('pedidos')
       .select('*')
       .eq('status', 'FINALIZADO')
       .gte('created_at', inicioUTC)
       .lte('created_at', fimUTC)
       .order('created_at', { ascending: true });
+  }
+
+  // Inclui registros antigos, finalizados antes da migracao, que ainda nao possuem finalizado_em.
+  const legados = await supabase
+    .from('pedidos')
+    .select('*')
+    .eq('status', 'FINALIZADO')
+    .is('finalizado_em', null)
+    .gte('created_at', inicioUTC)
+    .lte('created_at', fimUTC)
+    .order('created_at', { ascending: true });
+
+  if (legados.error) return { data: null, error: legados.error };
+
+  const porId = new Map();
+  [...(porFinalizacao.data || []), ...(legados.data || [])].forEach((pedido) => {
+    porId.set(pedido.id || pedido.code, pedido);
+  });
+
+  const data = [...porId.values()].sort((a, b) => {
+    const dataA = new Date(a.finalizado_em || a.created_at).getTime();
+    const dataB = new Date(b.finalizado_em || b.created_at).getTime();
+    return dataA - dataB;
+  });
+
+  return { data, error: null };
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') return res.status(405).send('Método não permitido');
+
+  try {
+    const { inicioUTC, fimUTC, br } = rangeDiaBrasil();
+
+    // Pegando pedidos FINALIZADO do dia pela data/hora em que foram finalizados.
+    const { data, error } = await buscarFinalizadosDoDia(inicioUTC, fimUTC);
 
     if (error) return res.status(500).json({ sucesso: false, erro: error.message });
 
@@ -81,12 +129,17 @@ export default async function handler(req, res) {
     }
 
     data.forEach((p, idx) => {
-      const hora = new Date(p.created_at).toLocaleString('pt-BR');
+      const horaFinalizado = p.finalizado_em
+        ? new Date(p.finalizado_em).toLocaleString('pt-BR')
+        : null;
+      const horaCriado = new Date(p.created_at).toLocaleString('pt-BR');
       const itens = normalizarItens(p.itens);
 
       doc.fontSize(12).text(`🐊 PEDIDO JACARÉ UTILIDADES`, { underline: false });
       doc.fontSize(11).text(`🆔 CÓDIGO: ${p.code || '-'}`);
-      doc.fontSize(10).fillColor('#555').text(`Criado em: ${hora}`);
+      doc.fontSize(10).fillColor('#555').text(
+        horaFinalizado ? `Finalizado em: ${horaFinalizado}` : `Criado em: ${horaCriado}`
+      );
       doc.fillColor('#000');
       doc.moveDown(0.4);
 

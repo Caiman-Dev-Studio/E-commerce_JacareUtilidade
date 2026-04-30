@@ -493,12 +493,30 @@ async function marcarPronto(codigo, token){
 }
 
 async function mudarStatus(codigo, status){
+  const updateData = { status: status }
+  if(status === "FINALIZADO"){
+    updateData.finalizado_em = new Date().toISOString()
+  }
+
   const { error } = await supabaseClient
     .from('pedidos')
-    .update({ status: status })
+    .update(updateData)
     .eq('code', codigo)
 
   if(error){
+    if(status === "FINALIZADO" && String(error.message || "").includes("finalizado_em")){
+      console.warn("Coluna finalizado_em ainda nao existe. Atualizando apenas o status.", error)
+      const retry = await supabaseClient
+        .from('pedidos')
+        .update({ status: status })
+        .eq('code', codigo)
+
+      if(!retry.error){
+        carregarPedidos()
+        return
+      }
+    }
+
     alert("Erro ao atualizar")
     return
   }
