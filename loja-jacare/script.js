@@ -955,11 +955,13 @@ function renderizarVitrine(lista, contexto = {}) {
 
 function renderizarGrids(lista) {
     const itensDisponiveis = lista.filter(produtoDisponivel);
-    const promocoesDisponiveis = produtosLocais
-        .filter(produtoDisponivel)
-        .filter(produtoEmPromocao);
-
+    const promocoesDisponiveis = itensDisponiveis.filter(produtoEmPromocao);
     const itensGerais = itensDisponiveis.filter(produto => !produtoEmPromocao(produto));
+    const secaoPromocoes = document.getElementById('secao-promocoes');
+
+    if (secaoPromocoes) {
+        secaoPromocoes.style.display = promocoesDisponiveis.length > 0 ? 'block' : 'none';
+    }
 
     renderizarLista(promocoesDisponiveis, 'grid-promocoes');
     renderizarLista(itensGerais, 'grid-produtos-geral');
