@@ -518,7 +518,7 @@ function gerarCodigoPedido() {
 function gerarTokenConfirmacao() {
     if (window.crypto?.randomUUID) {
         return window.crypto.randomUUID();
-    }
+            }
 
     return `tok-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -615,8 +615,10 @@ function agruparItensDoCarrinho() {
                 if (!itensAgrupados[item.id]) {
                     itensAgrupados[item.id] = { ...item, qtd: 0, presenteQtd: 0 };
                 }
+
                 itensAgrupados[item.id].qtd += 1;
             });
+
             return;
         }
 
@@ -646,6 +648,7 @@ function montarItensMercadoPago() {
                 qtd: 1,
                 preco: Number(entrada.totalFinal || 0)
             });
+
             return;
         }
 
@@ -667,7 +670,10 @@ function montarItensMercadoPago() {
 function montarPayloadPedido(codPedido = gerarCodigoPedido()) {
     const pagamento = document.getElementById('metodo-pagamento')?.value || 'Pix';
     const entrega = document.getElementById('metodo-entrega')?.value || 'Retirada';
-    const modalidadeEntrega = entrega === 'Entrega' ? obterTipoEntregaSelecionado() : 'Retirada';
+    const modalidadeEntrega = entrega === 'Entrega'
+        ? obterTipoEntregaSelecionado()
+        : 'Retirada';
+
     const enderecoCompleto = montarEnderecoCompleto();
     const tokenConfirmacao = gerarTokenConfirmacao();
     const itensAgrupados = agruparItensDoCarrinho();
@@ -703,15 +709,20 @@ function erroPermiteFallbackDeInsert(error) {
 }
 
 async function salvarPedidoNoSupabase(payload) {
-    const { error: erroRpc } = await supabaseClient.rpc('criar_pedido_com_baixa_estoque', {
-        p_code: payload.codPedido,
-        p_itens: payload.itensAgrupados,
-        p_endereco: payload.entrega === 'Entrega' ? payload.enderecoCompleto : null,
-        p_frete: payload.frete,
-        p_total: payload.totalFinal,
-        p_status: 'PENDENTE',
-        p_token_confirmacao: payload.tokenConfirmacao
-    });
+    const { error: erroRpc } = await supabaseClient.rpc(
+        'criar_pedido_com_baixa_estoque',
+        {
+            p_code: payload.codPedido,
+            p_itens: payload.itensAgrupados,
+            p_endereco: payload.entrega === 'Entrega'
+                ? payload.enderecoCompleto
+                : null,
+            p_frete: payload.frete,
+            p_total: payload.totalFinal,
+            p_status: 'PENDENTE',
+            p_token_confirmacao: payload.tokenConfirmacao
+        }
+    );
 
     if (!erroRpc) {
         return { ok: true, metodo: 'rpc' };
@@ -721,7 +732,10 @@ async function salvarPedidoNoSupabase(payload) {
         return { ok: false, error: erroRpc };
     }
 
-    console.warn('RPC de baixa de estoque indisponivel. Usando insert simples como fallback.', erroRpc);
+    console.warn(
+        'RPC de baixa de estoque indisponivel. Usando insert simples como fallback.',
+        erroRpc
+    );
 
     const { error: erroInsert } = await supabaseClient
         .from('pedidos')
@@ -729,7 +743,9 @@ async function salvarPedidoNoSupabase(payload) {
             {
                 code: payload.codPedido,
                 itens: payload.itensAgrupados,
-                endereco: payload.entrega === 'Entrega' ? payload.enderecoCompleto : null,
+                endereco: payload.entrega === 'Entrega'
+                    ? payload.enderecoCompleto
+                    : null,
                 frete: payload.frete,
                 total: payload.totalFinal,
                 status: 'PENDENTE',
@@ -748,6 +764,7 @@ function exibirErroAoSalvarPedido(error) {
     console.error('Erro ao salvar pedido:', error);
 
     const mensagem = String(error?.message || '');
+
     if (mensagem.includes('Estoque insuficiente')) {
         alert('Um ou mais itens ficaram sem estoque. Atualize a vitrine e tente novamente.');
         carregarProdutos(true);
@@ -776,8 +793,10 @@ async function carregarBanners() {
 
 function renderizarBanner(indice) {
     const img = document.getElementById('banner-img');
+
     if (img && bannersLocais[indice]) {
         img.style.opacity = 0;
+
         setTimeout(() => {
             img.src = bannersLocais[indice];
             img.style.opacity = 1;
@@ -808,7 +827,11 @@ async function calcularFrete() {
     if (modalidadeEntrega === 'Turbo') {
         marcarFreteComoPendente();
         exibirAvisoTurboIndisponivel();
-        alert('A entrega Turbo ainda nao esta disponivel no site. Escolha Economico para calcular o frete.');
+
+        alert(
+            'A entrega Turbo ainda nao esta disponivel no site. Escolha Economico para calcular o frete.'
+        );
+
         return;
     }
 
@@ -842,23 +865,33 @@ async function calcularFrete() {
             'Consultando tabela da entrega economica...'
         );
 
-        const resultadoEconomico = obterFreteEconomicoPorBairro(bairro, cidade);
+        const resultadoEconomico = obterFreteEconomicoPorBairro(
+            bairro,
+            cidade
+        );
 
         if (!resultadoEconomico.ok) {
             marcarFreteComoPendente();
-            definirStatusFrete(resultadoEconomico.error, '#c62828');
+            definirStatusFrete(
+                resultadoEconomico.error,
+                '#c62828'
+            );
+
             alert(resultadoEconomico.error);
             return;
         }
 
         const inputBairro = document.getElementById('input-bairro');
+
         if (inputBairro && resultadoEconomico.bairro) {
             inputBairro.value = resultadoEconomico.bairro;
         }
+
         atualizarSugestaoDeBairro();
 
         valorFreteAtual = Number(resultadoEconomico.valor);
         freteCalculado = true;
+
         detalhesFreteAtual = {
             modalidade: 'Economica',
             grupo: resultadoEconomico.grupo,
@@ -866,6 +899,7 @@ async function calcularFrete() {
             cidade,
             descricao: 'Entrega Economica'
         };
+
         atualizarTotalComFrete();
 
         definirStatusFrete(
@@ -875,7 +909,11 @@ async function calcularFrete() {
     } catch (error) {
         console.error('Erro na chamada de frete:', error);
         marcarFreteComoPendente();
-        definirStatusFrete('Erro ao consultar o frete.', '#c62828');
+        definirStatusFrete(
+            'Erro ao consultar o frete.',
+            '#c62828'
+        );
+
         alert('Erro ao consultar o frete.');
     } finally {
         if (btn) {
@@ -897,14 +935,21 @@ async function carregarProdutos(forcarAtualizacao = false) {
     ]);
 
     if (respostaProdutos.error) {
-        console.error('Erro no Supabase ao carregar produtos:', respostaProdutos.error);
+        console.error(
+            'Erro no Supabase ao carregar produtos:',
+            respostaProdutos.error
+        );
+
         return;
     }
 
     produtosLocais = respostaProdutos.data || [];
     kitsLocais = respostaKits || [];
+
     hidratarCatalogoDeKits();
     renderizarVitrine(produtosLocais, { modo: 'home' });
+
+    abrirProdutoPelaUrl();
 }
 
 async function carregarKitsDoSupabase() {
@@ -932,7 +977,11 @@ async function carregarKitsDoSupabase() {
         .order('nome', { ascending: true });
 
     if (error) {
-        console.error('Erro no Supabase ao carregar kits:', error);
+        console.error(
+            'Erro no Supabase ao carregar kits:',
+            error
+        );
+
         return [];
     }
 
@@ -956,15 +1005,28 @@ function renderizarVitrine(lista, contexto = {}) {
 function renderizarGrids(lista) {
     const itensDisponiveis = lista.filter(produtoDisponivel);
     const promocoesDisponiveis = itensDisponiveis.filter(produtoEmPromocao);
-    const itensGerais = itensDisponiveis.filter(produto => !produtoEmPromocao(produto));
+    const itensGerais = itensDisponiveis.filter(
+        produto => !produtoEmPromocao(produto)
+    );
+
     const secaoPromocoes = document.getElementById('secao-promocoes');
 
     if (secaoPromocoes) {
-        secaoPromocoes.style.display = promocoesDisponiveis.length > 0 ? 'block' : 'none';
+        secaoPromocoes.style.display =
+            promocoesDisponiveis.length > 0
+                ? 'block'
+                : 'none';
     }
 
-    renderizarLista(promocoesDisponiveis, 'grid-promocoes');
-    renderizarLista(itensGerais, 'grid-produtos-geral');
+    renderizarLista(
+        promocoesDisponiveis,
+        'grid-promocoes'
+    );
+
+    renderizarLista(
+        itensGerais,
+        'grid-produtos-geral'
+    );
 }
 
 function renderizarLista(lista, elementId) {
@@ -974,13 +1036,19 @@ function renderizarLista(lista, elementId) {
     grid.innerHTML = '';
 
     if (lista.length === 0) {
-        grid.innerHTML = '<p style="opacity:0.5; padding:20px; width:100%; text-align:center;">Nenhum item encontrado.</p>';
+        grid.innerHTML =
+            '<p style="opacity:0.5; padding:20px; width:100%; text-align:center;">Nenhum item encontrado.</p>';
+
         return;
     }
 
     lista.forEach(produto => {
         const ehPromo = produtoEmPromocao(produto);
-        const badgeHtml = ehPromo ? '<span class="promo-badge">PROMOCAO</span>' : '';
+
+        const badgeHtml = ehPromo
+            ? '<span class="promo-badge">PROMOCAO</span>'
+            : '';
+
         const precoAntigoHtml = produto.preco_antigo
             ? `<span class="price-old">${formatarMoeda(produto.preco_antigo)}</span>`
             : '';
@@ -988,12 +1056,23 @@ function renderizarLista(lista, elementId) {
         grid.innerHTML += `
             <div class="product-card" onclick="abrirDetalhes(${produto.id})">
                 ${badgeHtml}
+
                 <div class="product-img-bg">
-                    <img src="${produto.imagem_url}" onerror="handleImageError(this)">
+                    <img
+                        src="${produto.imagem_url}"
+                        onerror="handleImageError(this)"
+                    >
                 </div>
-                <h3 style="font-size:0.85rem; margin-bottom:5px;">${produto.nome}</h3>
+
+                <h3 style="font-size:0.85rem; margin-bottom:5px;">
+                    ${produto.nome}
+                </h3>
+
                 ${precoAntigoHtml}
-                <strong style="color:var(--green)">${formatarMoeda(produto.preco)}</strong>
+
+                <strong style="color:var(--green)">
+                    ${formatarMoeda(produto.preco)}
+                </strong>
             </div>
         `;
     });
@@ -1002,11 +1081,17 @@ function renderizarLista(lista, elementId) {
 function renderizarKitsHome() {
     const secao = document.getElementById('secao-kits-home');
     const grid = document.getElementById('grid-kits-home');
+
     if (!secao || !grid || !window.KitCatalog) return;
 
     const kits = window.KitCatalog.obterKitsHome();
+
     grid.innerHTML = montarHtmlListaDeKits(kits);
-    secao.style.display = estadoVitrine.modo === 'home' && kits.length > 0 ? 'block' : 'none';
+
+    secao.style.display =
+        estadoVitrine.modo === 'home' && kits.length > 0
+            ? 'block'
+            : 'none';
 }
 
 function renderizarKitsRelacionados(lista, contexto) {
@@ -1015,27 +1100,56 @@ function renderizarKitsRelacionados(lista, contexto) {
     const titulo = document.getElementById('titulo-kits-relacionados');
     const texto = document.getElementById('texto-kits-relacionados');
 
-    if (!secao || !grid || !titulo || !texto || !window.KitCatalog) return;
+    if (
+        !secao ||
+        !grid ||
+        !titulo ||
+        !texto ||
+        !window.KitCatalog
+    ) {
+        return;
+    }
 
     // Kits ficam sempre em um bloco separado para nao misturar com a grade principal.
     let kits = [];
 
-    if (contexto.modo === 'categoria' && contexto.categoria) {
-        kits = window.KitCatalog.obterKitsPorCategoria(contexto.categoria);
-        titulo.innerText = `Kits relacionados a ${contexto.categoria}`;
-        texto.innerText = 'Sugestoes de combinacao para acompanhar os produtos desta categoria.';
-    } else if (contexto.modo === 'busca' && contexto.termo) {
-        kits = window.KitCatalog.obterKitsPorBusca(contexto.termo, lista);
-        titulo.innerText = `Kits relacionados a "${contexto.termo}"`;
-        texto.innerText = 'Os produtos continuam na vitrine, e estes kits aparecem separados para facilitar a escolha.';
+    if (
+        contexto.modo === 'categoria' &&
+        contexto.categoria
+    ) {
+        kits = window.KitCatalog.obterKitsPorCategoria(
+            contexto.categoria
+        );
+
+        titulo.innerText =
+            `Kits relacionados a ${contexto.categoria}`;
+
+        texto.innerText =
+            'Sugestoes de combinacao para acompanhar os produtos desta categoria.';
+    } else if (
+        contexto.modo === 'busca' &&
+        contexto.termo
+    ) {
+        kits = window.KitCatalog.obterKitsPorBusca(
+            contexto.termo,
+            lista
+        );
+
+        titulo.innerText =
+            `Kits relacionados a "${contexto.termo}"`;
+
+        texto.innerText =
+            'Os produtos continuam na vitrine, e estes kits aparecem separados para facilitar a escolha.';
     }
 
     grid.innerHTML = montarHtmlListaDeKits(kits);
-    secao.style.display = kits.length > 0 ? 'block' : 'none';
+    secao.style.display = kits.length > 0
+        ? 'block'
+        : 'none';
 }
 
 function montarHtmlListaDeKits(kits) {
-    if (!kits || kits.length === 0) {
+        if (!kits || kits.length === 0) {
         return '<p style="opacity:0.6; padding:10px 0;">Nenhum kit disponivel neste momento.</p>';
     }
 
@@ -1105,12 +1219,27 @@ function configurarBlocoKitDoProduto(produto) {
     bloco.style.display = 'flex';
 }
 
-function abrirDetalhes(id) {
-    const produto = produtosLocais.find(item => Number(item.id) === Number(id));
+function abrirDetalhes(id, opcoes = {}) {
+    const produto = produtosLocais.find(
+        item => Number(item.id) === Number(id)
+    );
+
     if (!produto) return;
 
     produtoAtualModal = produto;
     modalQuantidadeAtual = 1;
+
+    if (opcoes.atualizarUrl !== false) {
+        const novaUrl = new URL(window.location.href);
+
+        novaUrl.searchParams.set('produto', produto.id);
+
+        window.history.pushState(
+            { produtoId: produto.id },
+            '',
+            novaUrl
+        );
+    }
 
     document.getElementById('modal-area-venda').style.display = 'block';
     document.getElementById('modal-area-escolha').style.display = 'none';
@@ -1119,25 +1248,46 @@ function abrirDetalhes(id) {
     document.getElementById('modal-btn-acao').style.display = 'block';
     document.getElementById('modal-titulo').innerText = produto.nome;
 
-    const imagens = [produto.imagem_url, produto.imagem_url2, produto.imagem_url3].filter(imagem => imagem && imagem !== '');
+    const imagens = [
+        produto.imagem_url,
+        produto.imagem_url2,
+        produto.imagem_url3
+    ].filter(imagem => imagem && imagem !== '');
 
-    let galeriaHtml = `<img src="${imagens[0]}" id="foto-principal-modal" class="main-modal-img">`;
+    let galeriaHtml = `
+        <img 
+            src="${imagens[0]}" 
+            id="foto-principal-modal" 
+            class="main-modal-img"
+        >
+    `;
 
     if (imagens.length > 1) {
         galeriaHtml += '<div class="thumbnails-container">';
+
         imagens.forEach(imagem => {
-            galeriaHtml += `<img src="${imagem}" class="thumb-img" onclick="document.getElementById('foto-principal-modal').src='${imagem}'">`;
+            galeriaHtml += `
+                <img 
+                    src="${imagem}" 
+                    class="thumb-img" 
+                    onclick="document.getElementById('foto-principal-modal').src='${imagem}'"
+                >
+            `;
         });
+
         galeriaHtml += '</div>';
     }
 
     document.getElementById('modal-galeria').innerHTML = galeriaHtml;
-    document.getElementById('modal-descricao').innerText = produto.descricao || 'E um sucesso!';
+
+    document.getElementById('modal-descricao').innerText =
+        produto.descricao || 'É um sucesso!';
 
     configurarBlocoKitDoProduto(produto);
     atualizarModalUI();
 
     const btn = document.getElementById('modal-btn-acao');
+
     btn.innerText = 'Adicionar ao Carrinho';
     btn.onclick = confirmarAdicaoAoCarrinho;
 
@@ -1166,12 +1316,22 @@ function ajustarQtdModal(delta) {
     if (novaQtd < 1) return;
 
     if (produtoAtualModal) {
-        const produtoAtualizado = obterProdutoAtualizado(produtoAtualModal.id) || produtoAtualModal;
-        const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal.id);
-        const estoqueDisponivel = Number(produtoAtualizado.estoque || 0) - jaNoCarrinho;
+        const produtoAtualizado =
+            obterProdutoAtualizado(produtoAtualModal.id) ||
+            produtoAtualModal;
+
+        const jaNoCarrinho =
+            quantidadeNoCarrinho(produtoAtualModal.id);
+
+        const estoqueDisponivel =
+            Number(produtoAtualizado.estoque || 0) -
+            jaNoCarrinho;
 
         if (novaQtd > estoqueDisponivel) {
-            alert(`Opa! So temos ${Math.max(estoqueDisponivel, 0)} unidade(s) disponiveis para adicionar agora.`);
+            alert(
+                `Opa! So temos ${Math.max(estoqueDisponivel, 0)} unidade(s) disponiveis para adicionar agora.`
+            );
+
             return;
         }
     }
@@ -1181,17 +1341,31 @@ function ajustarQtdModal(delta) {
 }
 
 function confirmarAdicaoAoCarrinho() {
-    const produtoAtualizado = obterProdutoAtualizado(produtoAtualModal?.id) || produtoAtualModal;
-    const jaNoCarrinho = quantidadeNoCarrinho(produtoAtualModal?.id);
-    const estoqueDisponivel = Number(produtoAtualizado?.estoque || 0) - jaNoCarrinho;
+    const produtoAtualizado =
+        obterProdutoAtualizado(produtoAtualModal?.id) ||
+        produtoAtualModal;
+
+    const jaNoCarrinho =
+        quantidadeNoCarrinho(produtoAtualModal?.id);
+
+    const estoqueDisponivel =
+        Number(produtoAtualizado?.estoque || 0) -
+        jaNoCarrinho;
 
     if (modalQuantidadeAtual > estoqueDisponivel) {
-        alert(`Opa! So temos ${Math.max(estoqueDisponivel, 0)} unidade(s) disponiveis para adicionar agora.`);
+        alert(
+            `Opa! So temos ${Math.max(estoqueDisponivel, 0)} unidade(s) disponiveis para adicionar agora.`
+        );
+
         return;
     }
 
     for (let i = 0; i < modalQuantidadeAtual; i += 1) {
-        carrinho.push({ tipo: 'produto', ...produtoAtualModal, presente: false });
+        carrinho.push({
+            tipo: 'produto',
+            ...produtoAtualModal,
+            presente: false
+        });
     }
 
     atualizarContadorCarrinho();
@@ -1209,21 +1383,40 @@ function mostrarConfirmacaoAdicaoAoCarrinho() {
 
 function abrirKitDoProdutoAtual() {
     if (!produtoAtualModal || !kitAtualProduto) return;
-    abrirModalKit(kitAtualProduto.id, { produtoPreSelecionadoId: produtoAtualModal.id });
+
+    abrirModalKit(
+        kitAtualProduto.id,
+        {
+            produtoPreSelecionadoId: produtoAtualModal.id
+        }
+    );
 }
 
 function calcularResumoDoKit(kit, selecionados) {
     // O desconto e calculado apenas sobre os itens marcados pelo cliente.
-    const itensSelecionados = kit.itens.filter(item => selecionados.has(Number(item.id)));
-    const subtotal = itensSelecionados.reduce((total, item) => total + Number(item.preco || 0), 0);
+    const itensSelecionados = kit.itens.filter(
+        item => selecionados.has(Number(item.id))
+    );
+
+    const subtotal = itensSelecionados.reduce(
+        (total, item) =>
+            total + Number(item.preco || 0),
+        0
+    );
 
     let desconto = 0;
     let regraAtiva = null;
 
     if (kit.desconto?.tipo === 'min_items_percent') {
         regraAtiva = kit.desconto;
-        if (itensSelecionados.length >= kit.desconto.minItens) {
-            desconto = subtotal * (kit.desconto.percentual / 100);
+
+        if (
+            itensSelecionados.length >=
+            kit.desconto.minItens
+        ) {
+            desconto =
+                subtotal *
+                (kit.desconto.percentual / 100);
         }
     }
 
@@ -1239,8 +1432,18 @@ function calcularResumoDoKit(kit, selecionados) {
 function abrirModalKit(kitId, opcoes = {}) {
     if (!window.KitCatalog) return;
 
-    const produtoOrigem = produtosLocais.find(produto => Number(produto.id) === Number(opcoes.produtoPreSelecionadoId));
-    const kit = window.KitCatalog.obterKitPorId(kitId, { produtoAtual: produtoOrigem });
+    const produtoOrigem = produtosLocais.find(
+        produto =>
+            Number(produto.id) ===
+            Number(opcoes.produtoPreSelecionadoId)
+    );
+
+    const kit = window.KitCatalog.obterKitPorId(
+        kitId,
+        {
+            produtoAtual: produtoOrigem
+        }
+    );
 
     if (!kit) {
         alert('Este kit nao esta disponivel no momento.');
@@ -1248,16 +1451,32 @@ function abrirModalKit(kitId, opcoes = {}) {
     }
 
     estadoModalKit.kit = kit;
-    estadoModalKit.produtoOrigemId = produtoOrigem ? Number(produtoOrigem.id) : null;
-    estadoModalKit.selecionados = new Set(produtoOrigem ? [Number(produtoOrigem.id)] : []);
-    estadoModalKit.itemExpandidoId = kit.itens[0] ? Number(kit.itens[0].id) : null;
+
+    estadoModalKit.produtoOrigemId =
+        produtoOrigem
+            ? Number(produtoOrigem.id)
+            : null;
+
+    estadoModalKit.selecionados =
+        new Set(
+            produtoOrigem
+                ? [Number(produtoOrigem.id)]
+                : []
+        );
+
+    estadoModalKit.itemExpandidoId =
+        kit.itens[0]
+            ? Number(kit.itens[0].id)
+            : null;
 
     document.getElementById('modal-kit').style.display = 'block';
+
     renderizarModalKit();
 }
 
 function fecharModalKit() {
     document.getElementById('modal-kit').style.display = 'none';
+
     estadoModalKit.kit = null;
     estadoModalKit.selecionados = new Set();
     estadoModalKit.itemExpandidoId = null;
@@ -1266,17 +1485,27 @@ function fecharModalKit() {
 
 function renderizarModalKit() {
     const kit = estadoModalKit.kit;
+
     if (!kit) return;
 
-    document.getElementById('modal-kit-titulo').innerText = kit.nome;
-    document.getElementById('modal-kit-descricao').innerText = kit.descricao;
+    document.getElementById('modal-kit-titulo').innerText =
+        kit.nome;
 
-    const lista = document.getElementById('lista-itens-kit');
+    document.getElementById('modal-kit-descricao').innerText =
+        kit.descricao;
+
+    const lista =
+        document.getElementById('lista-itens-kit');
+
     // Apenas um item fica expandido por vez, controlado por itemExpandidoId.
     lista.innerHTML = kit.itens.map(item => {
         const itemId = Number(item.id);
-        const estaSelecionado = estadoModalKit.selecionados.has(itemId);
-        const estaExpandido = estadoModalKit.itemExpandidoId === itemId;
+
+        const estaSelecionado =
+            estadoModalKit.selecionados.has(itemId);
+
+        const estaExpandido =
+            estadoModalKit.itemExpandidoId === itemId;
 
         return `
             <div class="kit-item">
@@ -1287,17 +1516,36 @@ function renderizarModalKit() {
                         ${estaSelecionado ? 'checked' : ''}
                         onchange="toggleSelecaoItemKit(${itemId})"
                     >
-                    <div class="kit-item-name">${item.nome}</div>
-                    <button type="button" class="kit-item-toggle" onclick="toggleExpansaoItemKit(${itemId})">
+
+                    <div class="kit-item-name">
+                        ${item.nome}
+                    </div>
+
+                    <button
+                        type="button"
+                        class="kit-item-toggle"
+                        onclick="toggleExpansaoItemKit(${itemId})"
+                    >
                         ${estaExpandido ? '^' : '&#709;'}
                     </button>
                 </div>
+
                 ${estaExpandido ? `
                     <div class="kit-item-body">
-                        <img src="${item.imagem_url}" onerror="handleImageError(this)" alt="${item.nome}">
+                        <img
+                            src="${item.imagem_url}"
+                            onerror="handleImageError(this)"
+                            alt="${item.nome}"
+                        >
+
                         <div>
-                            <p>${item.descricao || 'Produto pronto para entrar na sua combinacao.'}</p>
-                            <div class="kit-item-price">${formatarMoeda(item.preco)}</div>
+                            <p>
+                                ${item.descricao || 'Produto pronto para entrar na sua combinacao.'}
+                            </p>
+
+                            <div class="kit-item-price">
+                                ${formatarMoeda(item.preco)}
+                            </div>
                         </div>
                     </div>
                 ` : ''}
@@ -1305,37 +1553,72 @@ function renderizarModalKit() {
         `;
     }).join('');
 
-    const resumo = calcularResumoDoKit(kit, estadoModalKit.selecionados);
-    document.getElementById('kit-resumo-subtotal').innerText = formatarMoeda(resumo.subtotal);
-    document.getElementById('kit-resumo-desconto').innerText = `- ${formatarMoeda(resumo.desconto)}`;
-    document.getElementById('kit-resumo-total').innerText = formatarMoeda(resumo.total);
+    const resumo = calcularResumoDoKit(
+        kit,
+        estadoModalKit.selecionados
+    );
 
-    const regra = document.getElementById('kit-resumo-regra');
+    document.getElementById('kit-resumo-subtotal').innerText =
+        formatarMoeda(resumo.subtotal);
+
+    document.getElementById('kit-resumo-desconto').innerText =
+        `- ${formatarMoeda(resumo.desconto)}`;
+
+    document.getElementById('kit-resumo-total').innerText =
+        formatarMoeda(resumo.total);
+
+    const regra =
+        document.getElementById('kit-resumo-regra');
+
     if (resumo.regraAtiva) {
-        if (resumo.itensSelecionados.length >= resumo.regraAtiva.minItens) {
-            regra.innerText = `Desconto aplicado: ${resumo.regraAtiva.percentual}% ao selecionar ${resumo.itensSelecionados.length} item(ns).`;
+        if (
+            resumo.itensSelecionados.length >=
+            resumo.regraAtiva.minItens
+        ) {
+            regra.innerText =
+                `Desconto aplicado: ${resumo.regraAtiva.percentual}% ao selecionar ${resumo.itensSelecionados.length} item(ns).`;
         } else {
-            const faltam = resumo.regraAtiva.minItens - resumo.itensSelecionados.length;
-            regra.innerText = `Selecione mais ${faltam} item(ns) para liberar ${resumo.regraAtiva.percentual}% de desconto neste kit.`;
+            const faltam =
+                resumo.regraAtiva.minItens -
+                resumo.itensSelecionados.length;
+
+            regra.innerText =
+                `Selecione mais ${faltam} item(ns) para liberar ${resumo.regraAtiva.percentual}% de desconto neste kit.`;
         }
     } else {
-        regra.innerText = 'Este kit funciona apenas como combinacao flexivel, sem desconto adicional.';
+        regra.innerText =
+            'Este kit funciona apenas como combinacao flexivel, sem desconto adicional.';
     }
 
-    const botao = document.getElementById('modal-kit-btn-acao');
-    botao.disabled = resumo.itensSelecionados.length === 0;
-    botao.innerText = resumo.itensSelecionados.length === 0
-        ? 'Selecione ao menos um item'
-        : 'Adicionar kit ao carrinho';
+    const botao =
+        document.getElementById('modal-kit-btn-acao');
+
+    botao.disabled =
+        resumo.itensSelecionados.length === 0;
+
+    botao.innerText =
+        resumo.itensSelecionados.length === 0
+            ? 'Selecione ao menos um item'
+            : 'Adicionar kit ao carrinho';
+
     botao.onclick = adicionarKitAoCarrinho;
 }
 
 function toggleSelecaoItemKit(itemId) {
     const itemNormalizado = Number(itemId);
-    if (estadoModalKit.selecionados.has(itemNormalizado)) {
-        estadoModalKit.selecionados.delete(itemNormalizado);
+
+    if (
+        estadoModalKit.selecionados.has(
+            itemNormalizado
+        )
+    ) {
+        estadoModalKit.selecionados.delete(
+            itemNormalizado
+        );
     } else {
-        estadoModalKit.selecionados.add(itemNormalizado);
+        estadoModalKit.selecionados.add(
+            itemNormalizado
+        );
     }
 
     renderizarModalKit();
@@ -1343,22 +1626,37 @@ function toggleSelecaoItemKit(itemId) {
 
 function toggleExpansaoItemKit(itemId) {
     const itemNormalizado = Number(itemId);
-    estadoModalKit.itemExpandidoId = estadoModalKit.itemExpandidoId === itemNormalizado ? null : itemNormalizado;
+
+    estadoModalKit.itemExpandidoId =
+        estadoModalKit.itemExpandidoId ===
+        itemNormalizado
+            ? null
+            : itemNormalizado;
+
     renderizarModalKit();
 }
 
 function adicionarKitAoCarrinho() {
     const kit = estadoModalKit.kit;
+
     if (!kit) return;
 
-    const resumo = calcularResumoDoKit(kit, estadoModalKit.selecionados);
+    const resumo = calcularResumoDoKit(
+        kit,
+        estadoModalKit.selecionados
+    );
+
     if (resumo.itensSelecionados.length === 0) return;
 
     carrinho.push({
         tipo: 'kit',
         kitId: kit.id,
         nomeKit: kit.nome,
-        itens: resumo.itensSelecionados.map(item => ({ ...item })),
+
+        itens: resumo.itensSelecionados.map(
+            item => ({ ...item })
+        ),
+
         subtotal: resumo.subtotal,
         desconto: resumo.desconto,
         totalFinal: resumo.total
@@ -1375,20 +1673,35 @@ function abrirCarrinho() {
         return;
     }
 
-    document.getElementById('modal-area-venda').style.display = 'none';
-    document.getElementById('modal-area-escolha').style.display = 'none';
-    document.getElementById('modal-area-checkout').style.display = 'flex';
-    document.getElementById('modal-footer-preco').style.display = 'none';
-    document.getElementById('modal-btn-acao').style.display = 'block';
-    document.getElementById('modal-titulo').innerText = 'Seus pedidos';
+    document.getElementById('modal-area-venda').style.display =
+        'none';
 
-    const lista = document.getElementById('modal-lista-carrinho');
+    document.getElementById('modal-area-escolha').style.display =
+        'none';
+
+    document.getElementById('modal-area-checkout').style.display =
+        'flex';
+
+    document.getElementById('modal-footer-preco').style.display =
+        'none';
+
+    document.getElementById('modal-btn-acao').style.display =
+        'block';
+
+    document.getElementById('modal-titulo').innerText =
+        'Seus pedidos';
+
+    const lista =
+        document.getElementById('modal-lista-carrinho');
+
     lista.innerHTML = '';
 
     // O carrinho aceita dois formatos: item individual e bloco de kit.
     carrinho.forEach((entrada, index) => {
         if (entrada.tipo === 'kit') {
-            const aberto = kitsCarrinhoAbertos.has(index);
+            const aberto =
+                kitsCarrinhoAbertos.has(index);
+
             const itensHtml = entrada.itens.map(item => `
                 <div class="cart-kit-item">
                     <span>${item.nome}</span>
@@ -1399,57 +1712,111 @@ function abrirCarrinho() {
             lista.innerHTML += `
                 <div class="cart-kit-block">
                     <div class="cart-kit-header">
-                        <div class="cart-kit-title">${entrada.nomeKit}</div>
-                        <div class="cart-kit-total">${formatarMoeda(entrada.totalFinal)}</div>
-                        <button type="button" class="cart-kit-toggle" onclick="toggleKitCarrinho(${index})">${aberto ? '^' : '&#709;'}</button>
-                        <button type="button" class="cart-kit-delete" onclick="removerKitDoCarrinho(${index})">X</button>
+                        <div class="cart-kit-title">
+                            ${entrada.nomeKit}
+                        </div>
+
+                        <div class="cart-kit-total">
+                            ${formatarMoeda(entrada.totalFinal)}
+                        </div>
+
+                        <button
+                            type="button"
+                            class="cart-kit-toggle"
+                            onclick="toggleKitCarrinho(${index})"
+                        >
+                            ${aberto ? '^' : '&#709;'}
+                        </button>
+
+                        <button
+                            type="button"
+                            class="cart-kit-delete"
+                            onclick="removerKitDoCarrinho(${index})"
+                        >
+                            X
+                        </button>
                     </div>
+
                     ${aberto ? `
                         <div class="cart-kit-body">
-                            <div class="cart-kit-items">${itensHtml}</div>
+                            <div class="cart-kit-items">
+                                ${itensHtml}
+                            </div>
+
                             <div class="cart-kit-summary">
                                 <div class="cart-kit-summary-row">
                                     <span>Subtotal</span>
-                                    <strong>${formatarMoeda(entrada.subtotal)}</strong>
+
+                                    <strong>
+                                        ${formatarMoeda(entrada.subtotal)}
+                                    </strong>
                                 </div>
+
                                 <div class="cart-kit-summary-row">
                                     <span>Desconto</span>
-                                    <strong>- ${formatarMoeda(entrada.desconto)}</strong>
+
+                                    <strong>
+                                        - ${formatarMoeda(entrada.desconto)}
+                                    </strong>
                                 </div>
+
                                 <div class="cart-kit-summary-row cart-kit-summary-total">
                                     <span>Total final</span>
-                                    <strong>${formatarMoeda(entrada.totalFinal)}</strong>
+
+                                    <strong>
+                                        ${formatarMoeda(entrada.totalFinal)}
+                                    </strong>
                                 </div>
                             </div>
                         </div>
                     ` : ''}
                 </div>
             `;
+
             return;
         }
 
         lista.innerHTML += `
             <div class="cart-item-row">
-                <button class="btn-remover-unitario" onclick="removerDoCarrinho(${index})">X</button>
+                <button
+                    class="btn-remover-unitario"
+                    onclick="removerDoCarrinho(${index})"
+                >
+                    X
+                </button>
+
                 <div class="cart-item-info">
                     <strong>${entrada.nome}</strong>
+
                     <label style="display:block; font-size:0.75rem; color:var(--green); margin-top:5px; cursor:pointer;">
-                        <input type="checkbox" onchange="togglePresente(${index}, this.checked)" ${entrada.presente ? 'checked' : ''}> Presente?
+                        <input
+                            type="checkbox"
+                            onchange="togglePresente(${index}, this.checked)"
+                            ${entrada.presente ? 'checked' : ''}
+                        >
+
+                        Presente?
                     </label>
                 </div>
-                <div class="cart-item-price">${formatarMoeda(entrada.preco)}</div>
+
+                <div class="cart-item-price">
+                    ${formatarMoeda(entrada.preco)}
+                </div>
             </div>
         `;
     });
 
     atualizarTotalComFrete();
 
-    const btn = document.getElementById('modal-btn-acao');
+    const btn =
+        document.getElementById('modal-btn-acao');
+
     if (btn) {
         configurarBotaoCheckout();
     }
 
-    document.getElementById('modal-produto').style.display = 'block';
+    document.getElementById('modal-produto').style.display =
+        'block';
 }
 
 function toggleKitCarrinho(index) {
@@ -1458,19 +1825,28 @@ function toggleKitCarrinho(index) {
     } else {
         kitsCarrinhoAbertos.add(index);
     }
+
     abrirCarrinho();
 }
 
 function reajustarIndicesDosKits(indexRemovido) {
     kitsCarrinhoAbertos = new Set(
         [...kitsCarrinhoAbertos]
-            .filter(index => index !== indexRemovido)
-            .map(index => (index > indexRemovido ? index - 1 : index))
+            .filter(
+                index => index !== indexRemovido
+            )
+            .map(
+                index =>
+                    index > indexRemovido
+                        ? index - 1
+                        : index
+            )
     );
 }
 
 function removerKitDoCarrinho(index) {
     carrinho.splice(index, 1);
+
     reajustarIndicesDosKits(index);
     atualizarContadorCarrinho();
 
@@ -1490,6 +1866,7 @@ function togglePresente(index, valor) {
 
 function removerDoCarrinho(index) {
     carrinho.splice(index, 1);
+
     reajustarIndicesDosKits(index);
     atualizarContadorCarrinho();
 
@@ -1520,13 +1897,19 @@ async function pagarMercadoPago() {
 
     const payload = montarPayloadPedido();
     const btnMP = document.getElementById('modal-btn-acao');
-    if (btnMP) { btnMP.disabled = true; btnMP.innerText = 'Preparando pagamento...'; }
+
+    if (btnMP) {
+        btnMP.disabled = true;
+        btnMP.innerText = 'Preparando pagamento...';
+    }
 
     try {
         // 1. Cria preferência no backend
         const response = await fetch('/api/criar-preferencia', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
                 codPedido: payload.codPedido,
                 itens: payload.itensMercadoPago,
@@ -1536,7 +1919,9 @@ async function pagarMercadoPago() {
                 modalidadeEntrega: payload.modalidadeEntrega,
                 freteDescricao: payload.freteDescricao,
                 freteGrupo: payload.freteGrupo,
-                endereco: payload.entrega === 'Entrega' ? payload.enderecoCompleto : 'Retirada na loja',
+                endereco: payload.entrega === 'Entrega'
+                    ? payload.enderecoCompleto
+                    : 'Retirada na loja',
                 pagamento: payload.pagamento
             })
         });
@@ -1544,143 +1929,65 @@ async function pagarMercadoPago() {
         const data = await response.json();
 
         if (!response.ok || !data.preference_id) {
-            alert(data?.error || 'Nao foi possivel iniciar o pagamento. Tente novamente.');
-            if (btnMP) { btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
+            alert(
+                data?.error ||
+                'Nao foi possivel iniciar o pagamento. Tente novamente.'
+            );
+
+            if (btnMP) {
+                btnMP.disabled = false;
+                btnMP.innerText = 'Pagar Agora';
+            }
+
             return;
         }
 
         // 2. Salva pedido no Supabase como PENDENTE
         const resultadoSalvar = await salvarPedidoNoSupabase(payload);
+
         if (!resultadoSalvar.ok) {
             exibirErroAoSalvarPedido(resultadoSalvar.error);
-            if (btnMP) { btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
+
+            if (btnMP) {
+                btnMP.disabled = false;
+                btnMP.innerText = 'Pagar Agora';
+            }
+
             return;
         }
 
         // 3. Esconde botão e total, mostra Brick
-        if (btnMP) btnMP.style.display = 'none';
+        if (btnMP) {
+            btnMP.style.display = 'none';
+        }
+
         const footer = document.getElementById('modal-footer-preco');
-        if (footer) footer.style.display = 'none';
 
-        await renderizarBrickPagamento(data.preference_id, payload);
+        if (footer) {
+            footer.style.display = 'none';
+        }
 
+        await renderizarBrickPagamento(
+            data.preference_id,
+            payload
+        );
     } catch (error) {
-        console.error('Erro ao iniciar pagamento:', error);
-        alert('Erro ao conectar com o Mercado Pago. Tente novamente.');
-        if (btnMP) { btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
+        console.error(
+            'Erro ao iniciar pagamento:',
+            error
+        );
+
+        alert(
+            'Erro ao conectar com o Mercado Pago. Tente novamente.'
+        );
+
+        if (btnMP) {
+            btnMP.disabled = false;
+            btnMP.innerText = 'Pagar Agora';
+        }
     }
 }
 
-async function renderizarBrickPagamento(preferenceId, payload) {
-    const areaBrick = document.getElementById('area-brick-pagamento');
-    const container = document.getElementById('brick-container');
-    if (!areaBrick || !container) {
-        console.error('Containers do Brick nao encontrados. Verifique o index.html.');
-        return;
-    }
-
-    // Destroi brick anterior se existir
-    if (brickController) {
-        try { await brickController.unmount(); } catch(e) {}
-        brickController = null;
-    }
-    container.innerHTML = '';
-    areaBrick.style.display = 'block';
-
-    const metodo = document.getElementById('metodo-pagamento')?.value || 'Pix';
-    const isPix = metodo === 'Pix';
-    const isCartao = metodo === 'Cartao' || metodo === 'Cartão';
-
-    try {
-        const mp = new MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
-        const bricks = mp.bricks();
-
-        brickController = await bricks.create('payment', 'brick-container', {
-            initialization: {
-                amount: payload.totalFinal,
-                preferenceId,
-                mercadoPago: {
-                    customization: {
-                        visual: { hidePaymentButton: false },
-                        paymentMethods: { maxInstallments: 1 }
-                    }
-                }
-            },
-            customization: {
-                paymentMethods: {
-                    ...(isPix    ? { bankTransfer: 'all' } : {}),
-                    ...(isCartao ? { creditCard: 'all', debitCard: 'all' } : {})
-                },
-                visual: {
-                    style: {
-                        theme: 'default',
-                        customVariables: {
-                            baseColor: '#008037',
-                            buttonTextColor: '#ffffff'
-                        }
-                    },
-                    hideFormTitle: true
-                }
-            },
-            callbacks: {
-                onReady: () => console.log('Brick pronto'),
-                onSubmit: async ({ formData }) => {
-                    return new Promise((resolve, reject) => {
-                        fetch('/api/processar-pagamento', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ formData, codPedido: payload.codPedido })
-                        })
-                        .then(r => r.json())
-                        .then(res => {
-                            if (!res.sucesso) {
-                                alert(res.erro || 'Pagamento nao aprovado. Tente novamente.');
-                                reject(new Error(res.erro));
-                                return;
-                            }
-
-                            if (res.status === 'approved') {
-                                // Cartão aprovado — vai direto para sucesso
-                                limparCarrinhoAposCompra();
-                                resolve();
-                                window.location.href = `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
-                                return;
-                            }
-
-                            if (res.status === 'pending') {
-                                // Pix gerado — mostra QR Code, NÃO redireciona ainda
-                                resolve();
-                                mostrarQrCodePix(res.pix, payload.codPedido);
-                                return;
-                            }
-
-                            reject(new Error('Status desconhecido'));
-                        })
-                        .catch(err => {
-                            alert('Erro ao processar pagamento. Tente novamente.');
-                            reject(err);
-                        });
-                    });
-                },
-                onError: (error) => {
-                    console.error('Brick error:', JSON.stringify(error));
-                    if (areaBrick) {
-                        areaBrick.innerHTML = `
-                            <div style="text-align:center;padding:20px;color:#c62828;">
-                                <div style="font-size:2rem;">⚠️</div>
-                                <p><strong>Erro ao carregar o formulario de pagamento.</strong></p>
-                                <p style="font-size:0.8rem;color:#666;margin-top:4px;">${error?.message || ''}</p>
-                                <button class="add-btn" style="margin-top:12px;width:auto;padding:12px 24px;"
-                                    onclick="voltarParaCheckout()">← Voltar</button>
-                            </div>`;
-                    }
-                }
-            }
-        });
-    } catch(e) {
-        console.error('Erro ao criar Brick:', e);
-    }
-}
 
 function voltarParaCheckout() {
     const areaBrick = document.getElementById('area-brick-pagamento');
@@ -1688,10 +1995,18 @@ function voltarParaCheckout() {
         areaBrick.style.display = 'none';
         areaBrick.innerHTML = '<div id="brick-container"></div>';
     }
+
     const btnMP = document.getElementById('modal-btn-acao');
-    if (btnMP) { btnMP.style.display = 'block'; btnMP.disabled = false; btnMP.innerText = 'Pagar Agora'; }
+    if (btnMP) {
+        btnMP.style.display = 'block';
+        btnMP.disabled = false;
+        btnMP.innerText = 'Pagar Agora';
+    }
+
     const footer = document.getElementById('modal-footer-preco');
-    if (footer) footer.style.display = 'flex';
+    if (footer) {
+        footer.style.display = 'flex';
+    }
 }
 
 function mostrarQrCodePix(pix, codPedido) {
@@ -1746,9 +2061,14 @@ function mostrarQrCodePix(pix, codPedido) {
     areaBrick.style.display = 'block';
 
     const btnMP = document.getElementById('modal-btn-acao');
-    if (btnMP) btnMP.style.display = 'none';
+    if (btnMP) {
+        btnMP.style.display = 'none';
+    }
+
     const footer = document.getElementById('modal-footer-preco');
-    if (footer) footer.style.display = 'none';
+    if (footer) {
+        footer.style.display = 'none';
+    }
 
     // Inicia polling — verifica status a cada 5s por até 10 minutos
     iniciarPollingPix(codPedido);
@@ -1773,16 +2093,26 @@ function iniciarPollingPix(codPedido) {
                 return;
             }
 
-            if (data?.status === 'PRONTO' || data?.status === 'ENTREGA' || data?.status === 'FINALIZADO') {
+            if (
+                data?.status === 'PRONTO' ||
+                data?.status === 'ENTREGA' ||
+                data?.status === 'FINALIZADO'
+            ) {
                 clearInterval(intervalo);
-                // Atualiza o box antes de redirecionar
+
                 const box = document.getElementById('pix-status-box');
-                if (box) box.innerHTML = '<p style="margin:0;font-size:0.85rem;color:#2e7d32;">✅ Pagamento confirmado! Redirecionando...</p>';
+
+                if (box) {
+                    box.innerHTML =
+                        '<p style="margin:0;font-size:0.85rem;color:#2e7d32;">✅ Pagamento confirmado! Redirecionando...</p>';
+                }
+
                 setTimeout(() => {
-                    window.location.href = `/pagamento-sucesso.html?pedido=${codPedido}`;
+                    window.location.href =
+                        `/pagamento-sucesso.html?pedido=${codPedido}`;
                 }, 1500);
             }
-        } catch(e) {
+        } catch (e) {
             console.error('Polling erro:', e);
         }
 
@@ -1795,7 +2125,9 @@ function iniciarPollingPix(codPedido) {
 function copiarPixCola() {
     const input = document.getElementById('pix-copia-cola');
     if (!input) return;
+
     input.select();
+
     navigator.clipboard?.writeText(input.value).then(() => {
         alert('Código Pix copiado!');
     }).catch(() => {
@@ -1809,6 +2141,7 @@ function limparCarrinhoAposCompra() {
     kitsCarrinhoAbertos = new Set();
     valorFreteAtual = 0;
     freteCalculado = false;
+
     limparDetalhesFrete();
     atualizarContadorCarrinho();
 }
@@ -1816,14 +2149,30 @@ function limparCarrinhoAposCompra() {
 function fecharModal() {
     document.getElementById('modal-produto').style.display = 'none';
 
+    produtoAtualModal = null;
+
+    const urlSemProduto = new URL(window.location.href);
+
+    urlSemProduto.searchParams.delete('produto');
+
+    window.history.replaceState(
+        {},
+        '',
+        urlSemProduto
+    );
+
     // Destroi o Brick com segurança
     if (brickController) {
-        try { brickController.unmount(); } catch(e) {}
+        try {
+            brickController.unmount();
+        } catch (e) {}
+
         brickController = null;
     }
 
     // Reseta area do Brick
     const areaBrick = document.getElementById('area-brick-pagamento');
+
     if (areaBrick) {
         areaBrick.style.display = 'none';
         areaBrick.innerHTML = '<div id="brick-container"></div>';
@@ -1831,11 +2180,18 @@ function fecharModal() {
 
     // Restaura botao e total
     const btnMP = document.getElementById('modal-btn-acao');
-    if (btnMP) { btnMP.style.display = 'block'; btnMP.disabled = false; }
-    const footer = document.getElementById('modal-footer-preco');
-    if (footer) footer.style.display = 'flex';
-}
 
+    if (btnMP) {
+        btnMP.style.display = 'block';
+        btnMP.disabled = false;
+    }
+
+    const footer = document.getElementById('modal-footer-preco');
+
+    if (footer) {
+        footer.style.display = 'flex';
+    }
+}
 
 function toggleEndereco() {
     const metodo = document.getElementById('metodo-entrega').value;
@@ -1845,13 +2201,27 @@ function toggleEndereco() {
 
     if (metodo === 'Entrega') {
         campoEndereco.style.display = 'block';
-        if (labelTipoEntrega) labelTipoEntrega.style.display = 'block';
-        if (avisoHorario) avisoHorario.style.display = 'none';
+
+        if (labelTipoEntrega) {
+            labelTipoEntrega.style.display = 'block';
+        }
+
+        if (avisoHorario) {
+            avisoHorario.style.display = 'none';
+        }
+
         marcarFreteComoPendente();
     } else {
         campoEndereco.style.display = 'none';
-        if (labelTipoEntrega) labelTipoEntrega.style.display = 'none';
-        if (avisoHorario) avisoHorario.style.display = 'block';
+
+        if (labelTipoEntrega) {
+            labelTipoEntrega.style.display = 'none';
+        }
+
+        if (avisoHorario) {
+            avisoHorario.style.display = 'block';
+        }
+
         marcarFreteComoPendente();
     }
 
@@ -1863,17 +2233,61 @@ function toggleEndereco() {
 function compartilharProduto() {
     if (!produtoAtualModal) return;
 
-    const texto = `Olhe o que achei na Jacare Utilidades!\n\n${produtoAtualModal.nome}\nPreco: ${formatarMoeda(produtoAtualModal.preco)}\n\nConfira: ${window.location.href}`;
+    const urlProduto = new URL(window.location.href);
+
+    urlProduto.searchParams.set(
+        'produto',
+        produtoAtualModal.id
+    );
+
+    const linkProduto = urlProduto.toString();
+
+    const texto = `Olhe o que achei na Jacaré Utilidades!
+
+${produtoAtualModal.nome}
+Preço: ${formatarMoeda(produtoAtualModal.preco)}
+
+Confira: ${linkProduto}`;
 
     if (navigator.share) {
         navigator.share({
-            title: 'Jacare Utilidades',
+            title: produtoAtualModal.nome,
             text: texto,
-            url: window.location.href
+            url: linkProduto
         }).catch(console.error);
     } else {
-        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+        window.open(
+            `https://wa.me/?text=${encodeURIComponent(texto)}`,
+            '_blank'
+        );
     }
+}
+
+function abrirProdutoPelaUrl() {
+    const parametros = new URLSearchParams(window.location.search);
+    const produtoId = parametros.get('produto');
+
+    if (!produtoId) return;
+
+    const produtoExiste = produtosLocais.some(
+        produto => Number(produto.id) === Number(produtoId)
+    );
+
+    if (!produtoExiste) {
+        console.warn(
+            'Produto do link não encontrado:',
+            produtoId
+        );
+
+        return;
+    }
+
+    abrirDetalhes(
+        produtoId,
+        {
+            atualizarUrl: false
+        }
+    );
 }
 
 function configurarEventosFrete() {
@@ -1886,30 +2300,78 @@ function configurarEventosFrete() {
     const tipoEntrega = document.getElementById('tipo-entrega');
     const btnCalcularFrete = document.getElementById('btn-calcular-frete');
 
-    if (inputEndereco) inputEndereco.addEventListener('input', marcarFreteComoPendente);
-    if (inputNumero) inputNumero.addEventListener('input', marcarFreteComoPendente);
+    if (inputEndereco) {
+        inputEndereco.addEventListener(
+            'input',
+            marcarFreteComoPendente
+        );
+    }
+
+    if (inputNumero) {
+        inputNumero.addEventListener(
+            'input',
+            marcarFreteComoPendente
+        );
+    }
+
     if (inputBairro) {
         inputBairro.addEventListener('input', () => {
             atualizarSugestaoDeBairro();
             marcarFreteComoPendente();
         });
-        inputBairro.addEventListener('blur', atualizarSugestaoDeBairro);
+
+        inputBairro.addEventListener(
+            'blur',
+            atualizarSugestaoDeBairro
+        );
     }
-    if (inputComplemento) inputComplemento.addEventListener('input', marcarFreteComoPendente);
-    if (inputCidade) inputCidade.addEventListener('change', marcarFreteComoPendente);
-    if (tipoEntrega) tipoEntrega.addEventListener('change', marcarFreteComoPendente);
+
+    if (inputComplemento) {
+        inputComplemento.addEventListener(
+            'input',
+            marcarFreteComoPendente
+        );
+    }
+
+    if (inputCidade) {
+        inputCidade.addEventListener(
+            'change',
+            marcarFreteComoPendente
+        );
+    }
+
+    if (tipoEntrega) {
+        tipoEntrega.addEventListener(
+            'change',
+            marcarFreteComoPendente
+        );
+    }
 
     if (metodoEntrega) {
-        metodoEntrega.addEventListener('change', toggleEndereco);
+        metodoEntrega.addEventListener(
+            'change',
+            toggleEndereco
+        );
     }
 
     if (btnCalcularFrete) {
-        btnCalcularFrete.addEventListener('click', calcularFrete);
+        btnCalcularFrete.addEventListener(
+            'click',
+            calcularFrete
+        );
     }
 
-    const lista = document.getElementById('lista-bairros-sete-lagoas');
+    const lista = document.getElementById(
+        'lista-bairros-sete-lagoas'
+    );
+
     if (lista) {
-        lista.innerHTML = BAIRROS_ECONOMICOS.map(bairro => `<option value="${bairro}"></option>`).join('');
+        lista.innerHTML = BAIRROS_ECONOMICOS
+            .map(
+                bairro =>
+                    `<option value="${bairro}"></option>`
+            )
+            .join('');
     }
 
     toggleEndereco();
@@ -1919,6 +2381,26 @@ function configurarEventosFrete() {
     atualizarSugestaoDeBairro();
     renderizarResumoCheckout();
 }
+
+window.addEventListener('popstate', () => {
+    const produtoId = new URLSearchParams(
+        window.location.search
+    ).get('produto');
+
+    if (produtoId) {
+        abrirDetalhes(
+            produtoId,
+            {
+                atualizarUrl: false
+            }
+        );
+
+        return;
+    }
+
+    document.getElementById('modal-produto').style.display = 'none';
+    produtoAtualModal = null;
+});
 
 carregarProdutos(true);
 carregarBanners();
