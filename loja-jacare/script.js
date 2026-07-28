@@ -1987,7 +1987,224 @@ async function pagarMercadoPago() {
         }
     }
 }
+async function renderizarBrickPagamento(preferenceId, payload) {
+    const areaBrick = document.getElementById('area-brick-pagamento');
+    const container = document.getElementById('brick-container');
 
+    if (!areaBrick || !container) {
+        console.error(
+            'Containers do Brick nao encontrados. Verifique o index.html.'
+        );
+        return;
+    }
+
+    if (brickController) {
+        try {
+            await brickController.unmount();
+        } catch (e) {}
+
+        brickController = null;
+    }
+
+    container.innerHTML = '';
+    areaBrick.style.display = 'block';
+
+    const metodo =
+        document.getElementById('metodo-pagamento')?.value || 'Pix';
+
+    const isPix = metodo === 'Pix';
+
+    const isCartao =
+        metodo === 'Cartao' ||
+        metodo === 'Cartão';
+
+    try {
+        const mp = new MercadoPago(
+            MP_PUBLIC_KEY,
+            {
+                locale: 'pt-BR'
+            }
+        );
+
+        const bricks = mp.bricks();
+
+        brickController = await bricks.create(
+            'payment',
+            'brick-container',
+            {
+                initialization: {
+                    amount: payload.totalFinal,
+                    preferenceId,
+                    mercadoPago: {
+                        customization: {
+                            visual: {
+                                hidePaymentButton: false
+                            },
+                            paymentMethods: {
+                                maxInstallments: 1
+                            }
+                        }
+                    }
+                },
+
+                customization: {
+                    paymentMethods: {
+                        ...(isPix
+                            ? {
+                                bankTransfer: 'all'
+                            }
+                            : {}),
+
+                        ...(isCartao
+                            ? {
+                                creditCard: 'all',
+                                debitCard: 'all'
+                            }
+                            : {})
+                    },
+
+                    visual: {
+                        style: {
+                            theme: 'default',
+
+                            customVariables: {
+                                baseColor: '#008037',
+                                buttonTextColor: '#ffffff'
+                            }
+                        },
+
+                        hideFormTitle: true
+                    }
+                },
+
+                callbacks: {
+                    onReady: () =>
+                        console.log('Brick pronto'),
+
+                    onSubmit: async ({ formData }) => {
+                        return new Promise((resolve, reject) => {
+                            fetch(
+                                '/api/processar-pagamento',
+                                {
+                                    method: 'POST',
+
+                                    headers: {
+                                        'Content-Type':
+                                            'application/json'
+                                    },
+
+                                    body: JSON.stringify({
+                                        formData,
+                                        codPedido:
+                                            payload.codPedido
+                                    })
+                                }
+                            )
+                                .then(response => response.json())
+                                .then(resposta => {
+                                    if (!resposta.sucesso) {
+                                        alert(
+                                            resposta.erro ||
+                                            'Pagamento nao aprovado. Tente novamente.'
+                                        );
+
+                                        reject(
+                                            new Error(
+                                                resposta.erro
+                                            )
+                                        );
+
+                                        return;
+                                    }
+
+                                    if (
+                                        resposta.status ===
+                                        'approved'
+                                    ) {
+                                        limparCarrinhoAposCompra();
+
+                                        resolve();
+
+                                        window.location.href =
+                                            `/pagamento-sucesso.html?pedido=${payload.codPedido}`;
+
+                                        return;
+                                    }
+
+                                    if (
+                                        resposta.status ===
+                                        'pending'
+                                    ) {
+                                        resolve();
+
+                                        mostrarQrCodePix(
+                                            resposta.pix,
+                                            payload.codPedido
+                                        );
+
+                                        return;
+                                    }
+
+                                    reject(
+                                        new Error(
+                                            'Status desconhecido'
+                                        )
+                                    );
+                                })
+                                .catch(error => {
+                                    alert(
+                                        'Erro ao processar pagamento. Tente novamente.'
+                                    );
+
+                                    reject(error);
+                                });
+                        });
+                    },
+
+                    onError: error => {
+                        console.error(
+                            'Brick error:',
+                            JSON.stringify(error)
+                        );
+
+                        if (areaBrick) {
+                            areaBrick.innerHTML = `
+                                <div style="text-align:center;padding:20px;color:#c62828;">
+                                    <div style="font-size:2rem;">⚠️</div>
+
+                                    <p>
+                                        <strong>
+                                            Erro ao carregar o formulario de pagamento.
+                                        </strong>
+                                    </p>
+
+                                    <p style="font-size:0.8rem;color:#666;margin-top:4px;">
+                                        ${error?.message || ''}
+                                    </p>
+
+                                    <button
+                                        class="add-btn"
+                                        style="margin-top:12px;width:auto;padding:12px 24px;"
+                                        onclick="voltarParaCheckout()"
+                                    >
+                                        ← Voltar
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            }
+        );
+    } catch (error) {
+        console.error(
+            'Erro ao criar Brick:',
+            error
+        );
+
+        voltarParaCheckout();
+    }
+}
 
 function voltarParaCheckout() {
     const areaBrick = document.getElementById('area-brick-pagamento');
