@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /funcionarios.html
+Disallow: /api/
+Disallow: /pagamento-sucesso.html
+Disallow: /pagamento-falha.html
+Disallow: /pagamento-pendente.html
+Disallow: /confirmar.html
+
+Sitemap: https://www.jacareutilidades.com.br/sitemap.xml
