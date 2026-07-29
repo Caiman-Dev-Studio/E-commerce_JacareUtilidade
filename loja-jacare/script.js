@@ -1951,21 +1951,9 @@ async function pagarMercadoPago() {
             return;
         }
 
-        // 2. Salva pedido no Supabase como PENDENTE
-        const resultadoSalvar = await salvarPedidoNoSupabase(payload);
-
-        if (!resultadoSalvar.ok) {
-            exibirErroAoSalvarPedido(resultadoSalvar.error);
-
-            if (btnMP) {
-                btnMP.disabled = false;
-                btnMP.innerText = 'Pagar Agora';
-            }
-
-            return;
-        }
-
-        // 3. Esconde botão e total, mostra Brick
+        // 2. Esconde botão e total, mostra Brick
+        // (o pedido só é gravado no Supabase mais adiante, quando o
+        // cliente realmente enviar o pagamento — ver onSubmit do Brick)
         if (btnMP) {
             btnMP.style.display = 'none';
         }
@@ -2091,6 +2079,16 @@ async function renderizarBrickPagamento(preferenceId, payload) {
                         console.log('Brick pronto'),
 
                     onSubmit: async ({ formData }) => {
+                        // So agora o cliente realmente enviou o pagamento
+                        // (cartao preenchido ou Pix solicitado) — e' o
+                        // momento certo de registrar o pedido no Supabase.
+                        const resultadoSalvar = await salvarPedidoNoSupabase(payload);
+
+                        if (!resultadoSalvar.ok) {
+                            exibirErroAoSalvarPedido(resultadoSalvar.error);
+                            throw new Error('Nao foi possivel registrar o pedido.');
+                        }
+
                         return new Promise((resolve, reject) => {
                             fetch(
                                 '/api/processar-pagamento',
