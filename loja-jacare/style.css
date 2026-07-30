@@ -418,6 +418,28 @@
     border-color: var(--green);
 }
 
+/* Círculos de cor (variações do produto) */
+.cores-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.cor-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    cursor: pointer;
+    padding: 0;
+}
+
+.cor-swatch.cor-ativa {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--green);
+}
+
 /* Texto de descrição - AGORA COM MARGIN FORÇADA */
 .modal-desc-text {
     display: block;
