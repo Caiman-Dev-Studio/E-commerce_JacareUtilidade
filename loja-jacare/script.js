@@ -1289,6 +1289,38 @@ function abrirDetalhes(id, opcoes = {}) {
 
     document.getElementById('modal-galeria').innerHTML = galeriaHtml;
 
+    // Variações de cor: busca o produto principal + as cores vinculadas a ele
+    const idPrincipal = produto.produto_pai_id || produto.id;
+    const variantes = produtosLocais.filter(
+        item => item.id === idPrincipal || item.produto_pai_id === idPrincipal
+    );
+
+    const containerCores = document.getElementById('modal-cores');
+
+    if (variantes.length > 1) {
+        let coresHtml = '<div class="cores-container">';
+
+        variantes.forEach(variante => {
+            const ativo = variante.id === produto.id ? 'cor-ativa' : '';
+            coresHtml += `
+                <button
+                    type="button"
+                    class="cor-swatch ${ativo}"
+                    style="background:${variante.cor_hex || '#ccc'}"
+                    title="${variante.cor || ''}"
+                    onclick="abrirDetalhes(${variante.id}, { atualizarUrl: false })"
+                ></button>
+            `;
+        });
+
+        coresHtml += '</div>';
+        containerCores.innerHTML = coresHtml;
+        containerCores.style.display = 'block';
+    } else {
+        containerCores.innerHTML = '';
+        containerCores.style.display = 'none';
+    }
+
     document.getElementById('modal-descricao').innerText =
         produto.descricao || 'É um sucesso!';
 
