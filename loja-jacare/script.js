@@ -515,6 +515,36 @@ function gerarCodigoPedido() {
     return `JAC-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+function aplicarMascaraTelefone(valor) {
+    const digitos = valor.replace(/\D/g, '').slice(0, 11);
+
+    if (digitos.length <= 2) return digitos;
+    if (digitos.length <= 6) return `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
+    if (digitos.length <= 10) {
+        return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+    }
+    return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+}
+
+function configurarMascaraTelefone() {
+    const campo = document.getElementById('input-telefone');
+    if (!campo) return;
+
+    campo.addEventListener('input', () => {
+        campo.value = aplicarMascaraTelefone(campo.value);
+    });
+}
+
+function obterTelefoneDigitos() {
+    const valor = document.getElementById('input-telefone')?.value || '';
+    return valor.replace(/\D/g, '');
+}
+
+function telefoneValido(digitos) {
+    // Numero brasileiro: DDD (2) + 8 ou 9 digitos = 10 ou 11 digitos
+    return digitos.length === 10 || digitos.length === 11;
+}
+
 function gerarTokenConfirmacao() {
     if (window.crypto?.randomUUID) {
         return window.crypto.randomUUID();
@@ -546,10 +576,26 @@ function configurarBotaoCheckout() {
     botaoPrincipal.innerText = 'Pagar Agora';
     botaoPrincipal.onclick = pagarMercadoPago;
 
+    configurarMascaraTelefone();
+
     return botaoPrincipal;
 }
 
 function validarCamposDeEntrega() {
+    const telefoneDigitos = obterTelefoneDigitos();
+
+    if (!telefoneDigitos) {
+        alert('Informe seu WhatsApp ou telefone para continuar.');
+        document.getElementById('input-telefone')?.focus();
+        return false;
+    }
+
+    if (!telefoneValido(telefoneDigitos)) {
+        alert('Informe um telefone valido com DDD, ex: (31) 99999-9999.');
+        document.getElementById('input-telefone')?.focus();
+        return false;
+    }
+
     const metodoEntrega = document.getElementById('metodo-entrega')?.value;
     if (metodoEntrega !== 'Entrega') {
         return true;
@@ -687,6 +733,7 @@ function montarPayloadPedido(codPedido = gerarCodigoPedido()) {
     const tokenConfirmacao = gerarTokenConfirmacao();
     const itensAgrupados = agruparItensDoCarrinho();
     const resumo = obterResumoFinanceiroCarrinho();
+    const telefone = obterTelefoneDigitos();
 
     return {
         codPedido,
@@ -695,6 +742,7 @@ function montarPayloadPedido(codPedido = gerarCodigoPedido()) {
         modalidadeEntrega,
         enderecoCompleto,
         tokenConfirmacao,
+        telefone,
         itensAgrupados,
         itensMercadoPago: montarItensMercadoPago(),
         subtotalBruto: resumo.subtotalBruto,
@@ -729,7 +777,8 @@ async function salvarPedidoNoSupabase(payload) {
             p_frete: payload.frete,
             p_total: payload.totalFinal,
             p_status: 'PENDENTE',
-            p_token_confirmacao: payload.tokenConfirmacao
+            p_token_confirmacao: payload.tokenConfirmacao,
+            p_telefone: payload.telefone
         }
     );
 
@@ -758,7 +807,8 @@ async function salvarPedidoNoSupabase(payload) {
                 frete: payload.frete,
                 total: payload.totalFinal,
                 status: 'PENDENTE',
-                token_confirmacao: payload.tokenConfirmacao
+                token_confirmacao: payload.tokenConfirmacao,
+                telefone: payload.telefone
             }
         ]);
 
