@@ -277,7 +277,7 @@
 
   <div class="col">
     <div class="colhead">
-      <h2>🟡 PENDENTE</h2>
+      <h2>🟡 PENDENTE <span style="font-weight:400;font-size:0.7em;opacity:.75;">(aguardando pagamento)</span></h2>
       <div class="count" id="count-pendente">0</div>
     </div>
     <div class="list" id="pendente"></div>
@@ -331,6 +331,13 @@ function formatarHora(iso){
   if(!iso) return ""
   const d = new Date(iso)
   return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+}
+
+function formatarTelefoneExibicao(telefone){
+  const digitos = String(telefone || "").replace(/\D/g, "")
+  if(digitos.length === 11) return `(${digitos.slice(0,2)}) ${digitos.slice(2,7)}-${digitos.slice(7)}`
+  if(digitos.length === 10) return `(${digitos.slice(0,2)}) ${digitos.slice(2,6)}-${digitos.slice(6)}`
+  return telefone
 }
 
 function tocarSomNovoPedido(){
@@ -426,10 +433,14 @@ async function carregarPedidos(){
     let actions = ""
 
     if(p.status === "PENDENTE"){
-      actions += `<button class="btn btn-primary" onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">✅ Preparado</button>`
+      actions += `<button class="btn btn-primary" onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">💰 Já recebi o pagamento</button>`
     }
 
-    if(p.status === "PRONTO"){
+    if(p.status === "PRONTO" && !p.embalado){
+      actions += `<button class="btn btn-primary" onclick="marcarEmbalado('${p.code}')">📦 Embalado, pronto pra sair</button>`
+    }
+
+    if(p.status === "PRONTO" && p.embalado){
       actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','ENTREGA')">🚚 Saiu para entrega</button>`
     }
 
@@ -440,6 +451,10 @@ async function carregarPedidos(){
     if(p.status === "FINALIZADO"){
       actions += `<button class="btn btn-danger" onclick="removerPedido('${p.id}')">🗑 Remover</button>`
     }
+
+    const seloEmbalado = (p.status === "PRONTO" && p.embalado)
+      ? '<div class="muted">📦 Embalado — pronto pra sair</div>'
+      : '';
 
     const card = `
       <div class="card">
@@ -455,6 +470,8 @@ async function carregarPedidos(){
         <div class="meta">
           <div><b>Total:</b> R$ ${formatarMoeda(p.total)}</div>
           <div class="muted"><b>Endereço:</b> ${p.endereco || "-"}</div>
+          <div class="muted"><b>Telefone:</b> ${p.telefone ? formatarTelefoneExibicao(p.telefone) : "-"}</div>
+          ${seloEmbalado}
         </div>
 
         <div class="cardactions">${actions}</div>
@@ -476,6 +493,14 @@ async function carregarPedidos(){
 }
 
 async function marcarPronto(codigo, token){
+  const ok = confirm(
+    "O sistema ja confirma o pagamento sozinho quando o Mercado Pago avisa.\n\n" +
+    "So use isso se voce CONFERIU de verdade que o cliente pagou (ex: Pix caiu na conta) " +
+    "e o pedido esta demorando pra atualizar.\n\n" +
+    "Confirma que o pagamento foi recebido?"
+  )
+  if(!ok) return
+
   const r = await fetch("/api/confirmar", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -486,6 +511,25 @@ async function marcarPronto(codigo, token){
 
   if(!j.sucesso){
     alert("Erro ao atualizar")
+    return
+  }
+
+  carregarPedidos()
+}
+
+async function marcarEmbalado(codigo){
+  const r = await fetch("/api/marcar-embalado", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ codigo })
+  })
+
+  const j = await r.json().catch(() => ({}))
+
+  if(!r.ok || !j.sucesso){
+    alert("Erro ao marcar como embalado")
+    console.error(j)
     return
   }
 
