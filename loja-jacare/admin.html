@@ -429,6 +429,7 @@ async function carregarPedidos(){
     counts[st]++
 
     const itensHTML = montarItensHTML(p.itens)
+    const ehRetirada = !p.endereco
 
     let actions = ""
 
@@ -440,8 +441,12 @@ async function carregarPedidos(){
       actions += `<button class="btn btn-primary" onclick="marcarEmbalado('${p.code}')">📦 Embalado, pronto pra sair</button>`
     }
 
-    if(p.status === "PRONTO" && p.embalado){
+    if(p.status === "PRONTO" && p.embalado && !ehRetirada){
       actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','ENTREGA')">🚚 Saiu para entrega</button>`
+    }
+
+    if(p.status === "PRONTO" && p.embalado && ehRetirada){
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','FINALIZADO')">🏪 Cliente retirou</button>`
     }
 
     if(p.status === "ENTREGA"){
@@ -455,6 +460,10 @@ async function carregarPedidos(){
     const seloEmbalado = (p.status === "PRONTO" && p.embalado)
       ? '<div class="muted">📦 Embalado — pronto pra sair</div>'
       : '';
+
+    const seloTipo = ehRetirada
+      ? '<div class="muted">🏪 Retirada na loja</div>'
+      : '<div class="muted">🛵 Entrega</div>';
 
     const card = `
       <div class="card">
@@ -471,6 +480,7 @@ async function carregarPedidos(){
           <div><b>Total:</b> R$ ${formatarMoeda(p.total)}</div>
           <div class="muted"><b>Endereço:</b> ${p.endereco || "-"}</div>
           <div class="muted"><b>Telefone:</b> ${p.telefone ? formatarTelefoneExibicao(p.telefone) : "-"}</div>
+          ${seloTipo}
           ${seloEmbalado}
         </div>
 
