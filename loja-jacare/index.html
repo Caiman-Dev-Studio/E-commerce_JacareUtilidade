@@ -2,91 +2,402 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagamento Aprovado | Jacare Utilidades</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jacaré Utilidades | Papelaria, Utilidades e Brinquedos em Sete Lagoas</title>
+
+    <!-- SEO basico -->
+    <meta name="description" content="Jacaré Utilidades: papelaria, material escolar, brinquedos e utilidades para casa em Sete Lagoas, MG. Tem de tudo, é um sucesso! Compre online com entrega ou retire na loja.">
+    <link rel="canonical" href="https://www.jacareutilidades.com.br/">
+    <meta name="google-site-verification" content="rTiVSnNM9UnQzwMFgPvskNUhpUQfD5io4JH7XKbO1g0" />
+    <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Jacaré Utilidades">
+    <meta property="og:title" content="Jacaré Utilidades | Tem de tudo, é um sucesso!">
+    <meta property="og:description" content="Papelaria, material escolar, brinquedos e utilidades para casa em Sete Lagoas, MG. Compre online com entrega ou retire na loja.">
+    <meta property="og:image" content="https://www.jacareutilidades.com.br/logo-jacare-pdf.jpg">
+    <meta property="og:url" content="https://www.jacareutilidades.com.br/">
+    <meta property="og:locale" content="pt_BR">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Jacaré Utilidades | Tem de tudo, é um sucesso!">
+    <meta name="twitter:description" content="Papelaria, material escolar, brinquedos e utilidades para casa em Sete Lagoas, MG.">
+    <meta name="twitter:image" content="https://www.jacareutilidades.com.br/logo-jacare-pdf.jpg">
+
     <link rel="icon" type="image/png" href="favicon.png">
-    <style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            font-family: Inter, Arial, sans-serif;
-            background: #f4faf6;
-            color: #17361f;
-        }
-
-        .box {
-            width: min(92vw, 520px);
-            padding: 40px 28px;
-            border-radius: 24px;
-            background: #fff;
-            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
-            text-align: center;
-        }
-
-        .status {
-            width: 82px;
-            height: 82px;
-            margin: 0 auto 18px;
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            background: #e5f7eb;
-            color: #008037;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-
-        h1 {
-            margin: 0 0 10px;
-            color: #008037;
-        }
-
-        p {
-            margin: 0;
-            line-height: 1.6;
-            color: #4d5d52;
-        }
-
-        .code {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 18px;
-            border-radius: 999px;
-            background: #eef8f1;
-            color: #008037;
-            font-weight: 700;
-        }
-
-        .btn {
-            display: inline-block;
-            margin-top: 24px;
-            padding: 14px 26px;
-            border-radius: 12px;
-            background: #008037;
-            color: #fff;
-            text-decoration: none;
-            font-weight: 700;
-        }
-    </style>
-</head>
-<body>
-    <main class="box">
-        <div class="status">OK</div>
-        <h1>Pagamento aprovado</h1>
-        <p>Seu pedido foi confirmado e ja entrou no fluxo da loja. Em breve a equipe fara o proximo contato.</p>
-        <div class="code" id="cod-pedido">Pedido confirmado</div>
-        <a class="btn" id="btn-voltar-loja" href="/">Voltar para a loja</a>
-    </main>
-
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const pedido = params.get('pedido');
-        if (pedido) {
-            document.getElementById('cod-pedido').textContent = pedido;
-            document.getElementById('btn-voltar-loja').href = `/?pedido_recente=${encodeURIComponent(pedido)}`;
+        function handleImageError(img) {
+            img.src = 'https://placehold.co/800x800/008037/FFFFFF/png?text=Jacare+Utilidades';
         }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Dados estruturados: ajuda o Google a entender que isso e uma loja local -->
+    <!-- Confira telefone/endereco abaixo e ajuste se algo estiver errado -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "Jacaré Utilidades",
+      "image": "https://www.jacareutilidades.com.br/logo-jacare-pdf.jpg",
+      "url": "https://www.jacareutilidades.com.br/",
+      "telephone": "+5531998997812",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Av. Prefeito Alberto Moura, 188 - Nova Cidade",
+        "addressLocality": "Sete Lagoas",
+        "addressRegion": "MG",
+        "postalCode": "35702-272",
+        "addressCountry": "BR"
+      },
+      "sameAs": [
+        "https://www.instagram.com/jacareutilidades1/",
+        "https://www.facebook.com/jacareutilidades/"
+      ]
+    }
+    </script>
+</head>
+<body class="site-wrapper">
+    <header class="main-header">
+        <div class="container header-layout">
+            <div class="logo">
+                <h1>Jacaré <span>Utilidades</span></h1>
+            </div>
+            <nav class="search-area">
+                <input type="text" id="input-busca" placeholder="O que voce procura hoje?" onkeyup="if(event.key==='Enter') buscarProdutos()">
+                <button type="button" onclick="buscarProdutos()">Buscar</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="cart-fab" onclick="abrirCarrinho()" title="Ver Carrinho">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count">0</span>
+    </div>
+
+    <main class="main-content">
+        <section class="hero">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <span class="badge">Ofertas do Dia</span>
+                    <h1>Tem de tudo!<br><span>É um sucesso!</span></h1>
+                    <p>Variedade e preço baixo em Sete Lagoas e região.</p>
+                    <a href="#secao-promocoes" class="cta-button">Ver Promoções</a>
+                </div>
+                <div class="hero-banner">
+                    <img id="banner-img" src="" onerror="handleImageError(this)" alt="Banner Destaque">
+                </div>
+            </div>
+        </section>
+
+        <section class="categories">
+            <div class="container">
+                <div class="category-grid">
+                    <div class="category-item" onclick="filtrarPorCategoria('Tecnologia')">
+                        <div class="category-icon">📱</div><span>Tecnologia</span>
+                    </div>
+                    <div class="category-item" onclick="filtrarPorCategoria('Escolar')">
+                        <div class="category-icon">📚</div><span>Escolar</span>
+                    </div>
+                    <div class="category-item" onclick="filtrarPorCategoria('Brinquedos')">
+                        <div class="category-icon">🧸</div><span>Brinquedos</span>
+                    </div>
+                    <div class="category-item" onclick="filtrarPorCategoria('Utilidades')">
+                        <div class="category-icon">🛠️</div><span>Utilidades</span>
+                    </div>
+                    <div class="category-item" onclick="carregarProdutos()">
+                        <div class="category-icon">✨</div><span>Todos</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="container" id="container-busca-voltar" style="display:none; padding: 20px 0;">
+            <button onclick="limparBusca()" class="cta-button" style="margin:0; background: var(--green); color: white; border:none; cursor:pointer;">Voltar ao inicio</button>
+        </div>
+
+        <div class="container" id="secao-promocoes">
+            <h2 class="section-title">Promoções Bombando</h2>
+            <section class="product-grid" id="grid-promocoes">
+                <div class="loading-msg"><p>Carregando ofertas...</p></div>
+            </section>
+        </div>
+
+        <div class="container" id="secao-kits-home" style="display:none;">
+            <div class="kits-section-header">
+                <div>
+                    <h2 class="section-title">Kits e combinações</h2>
+                    <p class="kits-section-subtitle">Sugestões de combinação que convivem com a vitrine atual sem poluir a experiencia.</p>
+                </div>
+            </div>
+            <section class="kit-grid" id="grid-kits-home"></section>
+        </div>
+
+        <div class="container" id="secao-geral" style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 30px;">
+            <h2 class="section-title">Tudo da Jacaré</h2>
+            <section class="product-grid" id="grid-produtos-geral">
+                <div class="loading-msg"><p>Organizando a vitrine...</p></div>
+            </section>
+        </div>
+
+        <div class="container" id="secao-kits-relacionados" style="display:none; margin-top: 40px;">
+            <div class="kits-section-header">
+                <div>
+                    <h2 class="section-title" id="titulo-kits-relacionados">Kits relacionados</h2>
+                    <p class="kits-section-subtitle" id="texto-kits-relacionados">Combinações sugeridas para este contexto.</p>
+                </div>
+            </div>
+            <section class="kit-grid" id="grid-kits-relacionados"></section>
+        </div>
+    </main>
+
+    <div id="modal-produto" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal()">&times;</span>
+            <div class="modal-body">
+                <h2 id="modal-titulo" style="margin-bottom: 15px; font-family: 'Montserrat', sans-serif;"></h2>
+
+                <div id="modal-area-venda">
+                    <div class="image-container-branded">
+                        <div id="modal-galeria"></div>
+                        <div class="image-watermark">Jacaré Utilidades</div>
+                    </div>
+                    <div class="modal-info">
+                        <div style="display:flex; justify-content:flex-end; margin-top: 10px;">
+                            <button onclick="compartilharProduto()" class="btn-share" title="Compartilhar">🔗 Compartilhar</button>
+                        </div>
+                        <div id="modal-cores" style="display:none; margin: 10px 0;"></div>
+                        <div id="modal-descricao" class="modal-desc-text"></div>
+                        <div id="modal-quantidade-container" class="modal-qtd-selector">
+                            <button class="btn-qtd-modal" onclick="ajustarQtdModal(-1)">-</button>
+                            <span id="modal-qtd-numero">1</span>
+                            <button class="btn-qtd-modal" onclick="ajustarQtdModal(1)">+</button>
+                        </div>
+
+                        <div id="bloco-kit-produto" class="product-kit-callout" style="display:none;">
+                            <div>
+                                <h3>Combine este item com outros</h3>
+                                <p id="bloco-kit-produto-texto">Abra um kit flexivel e monte sua combinação.</p>
+                            </div>
+                            <button type="button" class="btn-secondary" onclick="abrirKitDoProdutoAtual()">Abrir kit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-area-escolha" style="display:none; text-align:center;">
+                    <div style="font-size: 3.5rem; margin-bottom: 10px;">✅</div>
+                    <h2 style="color:var(--green);">Adicionado!</h2>
+                    <p style="margin-bottom: 25px;">O que deseja fazer agora?</p>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <button class="add-btn" onclick="fecharModal()" style="background:#f1f1f1; color:#333;">Continuar comprando</button>
+                        <button class="add-btn" onclick="abrirCarrinho()">Fechar o pedido</button>
+                    </div>
+                </div>
+
+                <div id="modal-area-checkout" style="display:none;">
+                    <div id="modal-lista-carrinho" class="cart-items-list"></div>
+                    <div id="checkout-resumo-pedido" class="checkout-summary"></div>
+
+                    <div class="checkout-box">
+                        <div class="checkout-section-heading">
+                            <h3>Como deseja receber?</h3>
+                            <p>Escolha a modalidade de entrega antes de seguir para o fechamento.</p>
+                        </div>
+                        <label>SEU WHATSAPP / TELEFONE:</label>
+                        <input
+                            type="tel"
+                            id="input-telefone"
+                            class="form-select"
+                            placeholder="(31) 99999-9999"
+                            inputmode="tel"
+                            autocomplete="tel"
+                            maxlength="15"
+                        >
+                        <div class="delivery-inline-note">
+                            Usamos esse número para avisar sobre o seu pedido (WhatsApp, ligação ou SMS).
+                        </div>
+
+                        <label>FORMA DE PAGAMENTO:</label>
+                        <select id="metodo-pagamento" class="form-select">
+                            <img src="img/pix.png" alt="Pix">
+                            <option value="Pix">🔷 Pix</option>
+                            <option value="Cartao">💳 Cartão</option>
+                        </select>
+
+                        <label>ENTREGA OU RETIRADA:</label>
+                        <select id="metodo-entrega" class="form-select" onchange="toggleEndereco()">
+                            <option value="Retirada">🏪 Retirar na Loja</option>
+                            <option value="Entrega">🛵 Entrega em Sete Lagoas</option>
+                        </select>
+
+                        <div id="aviso-horario" class="delivery-inline-note">
+                            Retirada permitida das 10:00 as 16:30 do mesmo dia.
+                        </div>
+
+                        <div id="campo-endereco" style="display:none; margin-top: 12px;">
+                            <label id="label-tipo-entrega" class="delivery-choice-label" style="display:none;">Escolha o tipo de entrega</label>
+                            <input type="hidden" id="tipo-entrega" value="">
+                            <div class="delivery-choice-grid">
+                                <button type="button" class="delivery-option" data-value="Turbo" onclick="selecionarTipoEntrega('Turbo')">
+                                    <span class="delivery-option-title">Turbo</span>
+                                    <span class="delivery-option-subtitle">Entrega prioritaria</span>
+                                </button>
+                                <button type="button" class="delivery-option" data-value="Economica" onclick="selecionarTipoEntrega('Economica')">
+                                    <span class="delivery-option-title">Economico</span>
+                                    <span class="delivery-option-subtitle">Melhor custo para o pedido</span>
+                                </button>
+                            </div>
+
+                            <div id="tipo-entrega-erro" class="delivery-choice-error" style="display:none;">
+                                Escolha Turbo ou Economico para continuar.
+                            </div>
+
+                            <div id="tipo-entrega-info" class="delivery-info-card" style="display:none;"></div>
+
+                            <input
+                                type="text"
+                                id="input-endereco"
+                                class="form-select"
+                                placeholder="Rua"
+                                autocomplete="off"
+                            >
+
+                            <div class="checkout-fields-grid">
+                                <input
+                                    type="text"
+                                    id="input-numero"
+                                    class="form-select"
+                                    placeholder="Numero"
+                                    autocomplete="off"
+                                >
+                                <div class="bairro-field-wrap">
+                                    <input
+                                        type="text"
+                                        id="input-bairro"
+                                        class="form-select"
+                                        placeholder="Bairro"
+                                        autocomplete="off"
+                                        list="lista-bairros-sete-lagoas"
+                                    >
+                                    <datalist id="lista-bairros-sete-lagoas"></datalist>
+                                    <div id="bairro-sugestao" class="bairro-helper" style="display:none;"></div>
+                                </div>
+                            </div>
+
+                            <div class="checkout-fields-grid">
+                                <input
+                                    type="text"
+                                    id="input-complemento"
+                                    class="form-select"
+                                    placeholder="Complemento"
+                                    autocomplete="off"
+                                >
+                                <select id="input-cidade" class="form-select">
+                                    <option value="Sete Lagoas" selected>Sete Lagoas</option>
+                                    <option value="Prudente de Morais">Prudente de Morais</option>
+                                    <option value="Inhauma">Inhauma</option>
+                                    <option value="Capim Branco">Capim Branco</option>
+                                    <option value="Matozinhos">Matozinhos</option>
+                                    <option value="Funilandia">Funilandia</option>
+                                    <option value="Cordisburgo">Cordisburgo</option>
+                                    <option value="Paraopeba">Paraopeba</option>
+                                    <option value="Aracai">Aracai</option>
+                                    <option value="Cachoeira da Prata">Cachoeira da Prata</option>
+                                </select>
+                            </div>
+
+                            <button
+                                type="button"
+                                id="btn-calcular-frete"
+                                class="add-btn checkout-calc-btn"
+                            >
+                                Calcular frete
+                            </button>
+
+                            <div id="frete-status" class="delivery-status">
+                                Frete ainda nao calculado.
+                            </div>
+
+                            <div id="frete-ajuda" class="delivery-helper-text">
+                                Informe rua, numero, bairro e cidade. Depois clique em calcular frete.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-footer-preco" class="checkout-total">
+                    <span id="label-total">Total</span>: <span id="resumo-total-geral">R$ 0,00</span>
+                </div>
+
+                <!-- Área do Checkout Brick (Transparente) — aparece após clicar em Pagar -->
+                <div id="area-brick-pagamento" style="display:none; margin-top:16px;">
+                    <div id="brick-container"></div>
+                </div>
+
+                <button id="modal-btn-acao" class="add-btn"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-kit" class="modal">
+        <div class="modal-content modal-content-kit">
+            <span class="close-modal" onclick="fecharModalKit()">&times;</span>
+            <div class="modal-body">
+                <div class="kit-modal-header">
+                    <h2 id="modal-kit-titulo" style="margin-bottom: 10px; font-family: 'Montserrat', sans-serif;"></h2>
+                    <p id="modal-kit-descricao" class="kit-modal-description"></p>
+                </div>
+
+                <div id="lista-itens-kit" class="kit-items-list"></div>
+
+                <div class="kit-summary-box">
+                    <div class="kit-summary-row">
+                        <span>Subtotal</span>
+                        <strong id="kit-resumo-subtotal">R$ 0,00</strong>
+                    </div>
+                    <div class="kit-summary-row">
+                        <span>Desconto</span>
+                        <strong id="kit-resumo-desconto">R$ 0,00</strong>
+                    </div>
+                    <div class="kit-summary-row kit-summary-total">
+                        <span>Total final</span>
+                        <strong id="kit-resumo-total">R$ 0,00</strong>
+                    </div>
+                    <p id="kit-resumo-regra" class="kit-summary-note"></p>
+                </div>
+
+                <button id="modal-kit-btn-acao" class="add-btn" type="button">Adicionar kit ao carrinho</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer-premium">
+        <div class="container">
+            <h3>Jacaré Utilidades</h3>
+            <p>Variedade e agilidade para Sete Lagoas e região.</p>
+            <div style="margin-top:20px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap;">
+                <a href="https://wa.me/31998997812" target="_blank" class="social-btn">WhatsApp</a>
+                <a href="https://www.instagram.com/jacareutilidades1" target="_blank" class="social-btn" style="background:#E1306C;">Instagram</a>
+            </div>
+            <div class="dev-credit"> Desenvolvido por
+                <img src="logo-caiman.png" alt="Caiman Dev Studio">
+                <strong>Caiman Dev Studio</strong>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Jacaré Utilidades - É um Sucesso!</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SDK do Mercado Pago Bricks (Checkout Transparente) -->
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script src="kits.js"></script>
+    <script src="script.js"></script>
+    <script src="chat-widget.js"></script>
 </body>
 </html>
