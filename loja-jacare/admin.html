@@ -836,9 +836,10 @@ async function carregarConversas(){
     item.onclick = () => abrirConversa(c.id)
     item.innerHTML = `
       <div class="chat-item-topo">
-        <span class="chat-item-tel">${formatarTelefoneChat(c.telefone)}</span>
+        <span class="chat-item-tel">${c.nome ? c.nome : formatarTelefoneChat(c.telefone)}</span>
         <span class="chat-item-hora">${formatarHoraChat(c.updated_at)}</span>
       </div>
+      ${c.nome ? `<div class="chat-item-preview">${formatarTelefoneChat(c.telefone)}</div>` : ""}
       <span class="chat-tag ${tagClasse}">${tagTexto}</span>
     `
     lista.appendChild(item)
@@ -875,7 +876,7 @@ async function renderizarThread(conversa){
   thread.innerHTML = `
     <div class="chat-thread-header">
       <div>
-        <div class="titulo">${formatarTelefoneChat(conversa.telefone)}</div>
+        <div class="titulo">${conversa.nome ? `${conversa.nome} · ` : ""}${formatarTelefoneChat(conversa.telefone)}</div>
         <div class="sub">Conversa iniciada em ${formatarHoraChat(conversa.created_at)}</div>
       </div>
       <button class="btn btn-danger" onclick="encerrarConversa('${conversa.id}')">Encerrar</button>
