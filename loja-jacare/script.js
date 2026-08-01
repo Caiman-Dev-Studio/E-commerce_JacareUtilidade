@@ -46,7 +46,11 @@ let detalhesFreteAtual = {
 const estadoVitrine = {
     modo: 'home',
     termo: '',
-    categoria: ''
+    categoria: '',
+    subcategoria: '',
+    ordenacao: 'nome',
+    somentePromocao: false,
+    listaBaseAtual: []
 };
 
 // Estado isolado do modal de kits para manter a interacao previsivel.
@@ -1062,11 +1066,32 @@ function renderizarVitrine(lista, contexto = {}) {
 }
 
 function renderizarGrids(lista) {
+    estadoVitrine.listaBaseAtual = lista;
+
     const itensDisponiveis = lista.filter(produtoDisponivel);
     const promocoesDisponiveis = itensDisponiveis.filter(produtoEmPromocao);
-    const itensGerais = itensDisponiveis.filter(
+    let itensGerais = itensDisponiveis.filter(
         produto => !produtoEmPromocao(produto)
     );
+
+    montarChipsSubcategoria(itensDisponiveis);
+
+    if (estadoVitrine.subcategoria) {
+        itensGerais = itensGerais.filter(
+            produto => produto.subcategoria === estadoVitrine.subcategoria
+        );
+    }
+
+    if (estadoVitrine.somentePromocao) {
+        itensGerais = itensDisponiveis.filter(produtoEmPromocao);
+        if (estadoVitrine.subcategoria) {
+            itensGerais = itensGerais.filter(
+                produto => produto.subcategoria === estadoVitrine.subcategoria
+            );
+        }
+    }
+
+    itensGerais = ordenarListaVitrine(itensGerais);
 
     const secaoPromocoes = document.getElementById('secao-promocoes');
 
@@ -1086,6 +1111,63 @@ function renderizarGrids(lista) {
         itensGerais,
         'grid-produtos-geral'
     );
+}
+
+function ordenarListaVitrine(lista) {
+    const copia = [...lista];
+
+    if (estadoVitrine.ordenacao === 'menor-preco') {
+        return copia.sort((a, b) => (a.preco || 0) - (b.preco || 0));
+    }
+
+    if (estadoVitrine.ordenacao === 'maior-preco') {
+        return copia.sort((a, b) => (b.preco || 0) - (a.preco || 0));
+    }
+
+    return copia.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+}
+
+function montarChipsSubcategoria(lista) {
+    const container = document.getElementById('chips-subcategoria');
+    const barraFiltros = document.getElementById('vitrine-filtros');
+    if (!container || !barraFiltros) return;
+
+    const subcategorias = [...new Set(
+        lista
+            .map(produto => produto.subcategoria)
+            .filter(sub => sub && sub.trim() !== '')
+    )].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    if (subcategorias.length === 0) {
+        // sem subcategorias cadastradas nesse recorte: mostra so os controles de ordenacao/promocao
+        container.innerHTML = '';
+        barraFiltros.style.display = estadoVitrine.modo === 'busca' ? 'none' : 'flex';
+        estadoVitrine.subcategoria = '';
+        return;
+    }
+
+    barraFiltros.style.display = 'flex';
+
+    const chipTodos = `<button class="chip-subcategoria ${estadoVitrine.subcategoria === '' ? 'ativo' : ''}" onclick="selecionarSubcategoria('')">Todas</button>`;
+
+    const chipsHtml = subcategorias.map(sub => `
+        <button class="chip-subcategoria ${estadoVitrine.subcategoria === sub ? 'ativo' : ''}" onclick="selecionarSubcategoria('${sub.replace(/'/g, "\\'")}')">
+            ${sub}
+        </button>
+    `).join('');
+
+    container.innerHTML = chipTodos + chipsHtml;
+}
+
+function selecionarSubcategoria(subcategoria) {
+    estadoVitrine.subcategoria = subcategoria;
+    renderizarGrids(estadoVitrine.listaBaseAtual);
+}
+
+function aplicarFiltrosVitrine() {
+    estadoVitrine.somentePromocao = document.getElementById('check-somente-promocao').checked;
+    estadoVitrine.ordenacao = document.getElementById('select-ordenacao').value;
+    renderizarGrids(estadoVitrine.listaBaseAtual);
 }
 
 function renderizarLista(lista, elementId) {
@@ -1219,13 +1301,33 @@ function montarHtmlListaDeKits(kits) {
             ? `${kit.desconto.percentual}% OFF a partir de ${kit.desconto.minItens} itens`
             : 'Combinacao flexivel';
 
+        const fotosKit = kit.itens.slice(0, 3);
+        const imagensHtml = fotosKit.map((item, indice) => `
+            <img
+                class="kit-img kit-img-${indice + 1}"
+                src="${item.imagem_url}"
+                alt="${item.nome}"
+                onerror="handleImageError(this)"
+                loading="lazy"
+            >
+        `).join('');
+
+        const seloDesconto = kit.desconto?.tipo === 'min_items_percent'
+            ? `<span class="kit-card-ribbon">-${kit.desconto.percentual}%</span>`
+            : '';
+
         return `
             <article class="kit-card">
+                <div class="kit-card-visual">
+                    <div class="kit-card-imgs">${imagensHtml}</div>
+                    ${seloDesconto}
+                </div>
+
                 <span class="kit-card-tag">${regra}</span>
                 <h3>${kit.nome}</h3>
                 <p>${kit.descricao}</p>
                 <div class="kit-card-items">${kit.itens.length} item(ns) sugeridos para combinar.</div>
-                <button type="button" class="btn-secondary" onclick="abrirModalKit('${kit.id}')">Kits e combinacoes</button>
+                <button type="button" class="btn-secondary" onclick="abrirModalKit('${kit.id}')">Ver kit e montar o meu</button>
             </article>
         `;
     }).join('');
@@ -1252,16 +1354,31 @@ function buscarProdutos() {
 
 function limparBusca() {
     document.getElementById('input-busca').value = '';
+    estadoVitrine.subcategoria = '';
+    resetarControlesFiltroVitrine();
     renderizarVitrine(produtosLocais, { modo: 'home' });
 }
 
 function filtrarPorCategoria(categoria) {
+    estadoVitrine.subcategoria = '';
+    resetarControlesFiltroVitrine();
+
     const filtrados = produtosLocais.filter(produto => produto.categoria === categoria);
 
     renderizarVitrine(filtrados, {
         modo: 'categoria',
         categoria
     });
+}
+
+function resetarControlesFiltroVitrine() {
+    estadoVitrine.somentePromocao = false;
+    estadoVitrine.ordenacao = 'nome';
+
+    const checkPromo = document.getElementById('check-somente-promocao');
+    const selectOrdenacao = document.getElementById('select-ordenacao');
+    if (checkPromo) checkPromo.checked = false;
+    if (selectOrdenacao) selectOrdenacao.value = 'nome';
 }
 
 function configurarBlocoKitDoProduto(produto) {
