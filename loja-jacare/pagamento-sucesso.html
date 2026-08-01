@@ -77,7 +77,7 @@
         <h1>Pagamento aprovado</h1>
         <p>Seu pedido foi confirmado e ja entrou no fluxo da loja. Em breve a equipe fara o proximo contato.</p>
         <div class="code" id="cod-pedido">Pedido confirmado</div>
-        <a class="btn" href="/">Voltar para a loja</a>
+        <a class="btn" id="btn-voltar-loja" href="/">Voltar para a loja</a>
     </main>
 
     <script>
@@ -85,6 +85,7 @@
         const pedido = params.get('pedido');
         if (pedido) {
             document.getElementById('cod-pedido').textContent = pedido;
+            document.getElementById('btn-voltar-loja').href = `/?pedido_recente=${encodeURIComponent(pedido)}`;
         }
     </script>
 </body>
