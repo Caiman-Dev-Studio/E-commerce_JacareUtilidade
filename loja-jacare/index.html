@@ -1,403 +1,945 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jacaré Utilidades | Papelaria, Utilidades e Brinquedos em Sete Lagoas</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Pedidos</title>
 
-    <!-- SEO basico -->
-    <meta name="description" content="Jacaré Utilidades: papelaria, material escolar, brinquedos e utilidades para casa em Sete Lagoas, MG. Tem de tudo, é um sucesso! Compre online com entrega ou retire na loja.">
-    <link rel="canonical" href="https://www.jacareutilidades.com.br/">
-    <meta name="google-site-verification" content="rTiVSnNM9UnQzwMFgPvskNUhpUQfD5io4JH7XKbO1g0" />
-    <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Jacaré Utilidades">
-    <meta property="og:title" content="Jacaré Utilidades | Tem de tudo, é um sucesso!">
-    <meta property="og:description" content="Papelaria, material escolar, brinquedos e utilidades para casa em Sete Lagoas, MG. Compre online com entrega ou retire na loja.">
-    <meta property="og:image" content="https://www.jacareutilidades.com.br/logo-jacare-pdf.jpg">
-    <meta property="og:url" content="https://www.jacareutilidades.com.br/">
-    <meta property="og:locale" content="pt_BR">
+<style>
+  :root{
+    --bg: #0b0f14;
+    --panel: rgba(255,255,255,0.06);
+    --panel-2: rgba(255,255,255,0.09);
+    --text: rgba(255,255,255,0.92);
+    --muted: rgba(255,255,255,0.65);
+    --border: rgba(255,255,255,0.10);
+    --shadow: 0 10px 25px rgba(0,0,0,0.35);
+    --radius: 16px;
+  }
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Jacaré Utilidades | Tem de tudo, é um sucesso!">
-    <meta name="twitter:description" content="Papelaria, material escolar, brinquedos e utilidades para casa em Sete Lagoas, MG.">
-    <meta name="twitter:image" content="https://www.jacareutilidades.com.br/logo-jacare-pdf.jpg">
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    font-family: Inter, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 20% 0%, rgba(0,128,55,0.25), transparent 60%),
+                radial-gradient(900px 500px at 90% 10%, rgba(0,180,255,0.18), transparent 55%),
+                var(--bg);
+    color: var(--text);
+    padding: 26px;
+  }
 
-    <link rel="icon" type="image/png" href="favicon.png">
-    <script>
-        function handleImageError(img) {
-            img.src = 'https://placehold.co/800x800/008037/FFFFFF/png?text=Jacare+Utilidades';
-        }
-    </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Montserrat:wght@700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  .topbar{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+  }
 
-    <!-- Dados estruturados: ajuda o Google a entender que isso e uma loja local -->
-    <!-- Confira telefone/endereco abaixo e ajuste se algo estiver errado -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Store",
-      "name": "Jacaré Utilidades",
-      "image": "https://www.jacareutilidades.com.br/logo-jacare-pdf.jpg",
-      "url": "https://www.jacareutilidades.com.br/",
-      "telephone": "+5531998997812",
-      "priceRange": "$$",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Av. Prefeito Alberto Moura, 188 - Nova Cidade",
-        "addressLocality": "Sete Lagoas",
-        "addressRegion": "MG",
-        "postalCode": "35702-272",
-        "addressCountry": "BR"
-      },
-      "sameAs": [
-        "https://www.instagram.com/jacareutilidades1/",
-        "https://www.facebook.com/jacareutilidades/"
-      ]
-    }
-    </script>
+  .title{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .title h1{
+    margin:0;
+    font-size:28px;
+    letter-spacing:0.2px;
+  }
+
+  .subtitle{
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:flex-end;
+  }
+
+  .btn{
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: 0.15s;
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+  }
+  .btn:hover{ background: rgba(255,255,255,0.10); transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0px); }
+
+  .pill{
+    border:1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--muted);
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  .dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
+  }
+
+  .board{
+    display:grid;
+    grid-template-columns: repeat(4, minmax(260px, 1fr));
+    gap: 14px;
+    align-items:start;
+  }
+
+  @media (max-width: 1200px){
+    .board{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+  }
+  @media (max-width: 720px){
+    .board{ grid-template-columns: 1fr; }
+    body{ padding: 16px; }
+  }
+
+  .col{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+    min-height: 420px;
+  }
+
+  .colhead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom: 12px;
+  }
+
+  .colhead h2{
+    margin:0;
+    font-size: 14px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+
+  .count{
+    background: rgba(255,255,255,0.10);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .list{ display:flex; flex-direction:column; gap:10px; }
+
+  .card{
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.28);
+  }
+
+  .cardtop{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .code{
+    font-weight: 800;
+    letter-spacing:0.3px;
+    font-size: 13px;
+  }
+
+  .time{
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .items{
+    background: rgba(0,0,0,0.18);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+    color: rgba(255,255,255,0.88);
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .meta{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    color: rgba(255,255,255,0.88);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .meta b{ color: var(--text); }
+  .meta .muted{ color: var(--muted); }
+
+  .cardactions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .btn-primary{
+    background: rgba(34,197,94,0.16);
+    border: 1px solid rgba(34,197,94,0.35);
+  }
+  .btn-primary:hover{ background: rgba(34,197,94,0.22); }
+
+  .btn-warn{
+    background: rgba(245,158,11,0.18);
+    border: 1px solid rgba(245,158,11,0.40);
+  }
+  .btn-warn:hover{ background: rgba(245,158,11,0.24); }
+
+  .btn-danger{
+    background: rgba(239,68,68,0.16);
+    border: 1px solid rgba(239,68,68,0.38);
+  }
+  .btn-danger:hover{ background: rgba(239,68,68,0.22); }
+
+  .empty{
+    color: var(--muted);
+    font-size: 13px;
+    padding: 10px 4px;
+  }
+
+  /* ===== CHAT COM CLIENTES ===== */
+  .btn-chat{ position: relative; }
+  .chat-contador{
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  #chat-overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+  }
+  #chat-overlay.aberto{ display: flex; }
+
+  #chat-modal{
+    width: min(920px, 94vw);
+    height: min(600px, 88vh);
+    background: #0e1420;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    overflow: hidden;
+  }
+
+  .chat-lista{
+    width: 280px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: rgba(255,255,255,0.03);
+  }
+
+  .chat-lista-header{
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chat-lista-header button{
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  .chat-lista-itens{ flex: 1; overflow-y: auto; }
+
+  .chat-item{
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .chat-item:hover{ background: rgba(255,255,255,0.05); }
+  .chat-item.ativo{ background: rgba(34,197,94,0.12); }
+  .chat-item .chat-item-topo{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .chat-item .chat-item-tel{ font-weight: 700; }
+  .chat-item .chat-item-hora{ color: var(--muted); font-size: 11px; }
+  .chat-item .chat-item-preview{ color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-tag{
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    margin-top: 4px;
+  }
+  .chat-tag.aguardando{ background: rgba(245,158,11,0.20); color: #fbbf24; }
+  .chat-tag.em_atendimento{ background: rgba(34,197,94,0.20); color: #4ade80; }
+
+  .chat-thread{ flex: 1; display: flex; flex-direction: column; }
+  .chat-thread-header{
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chat-thread-header .titulo{ font-weight: 700; font-size: 14px; }
+  .chat-thread-header .sub{ color: var(--muted); font-size: 12px; }
+
+  .chat-thread-msgs{
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chat-bolha{
+    max-width: 75%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  .chat-bolha.cliente{ align-self: flex-start; background: rgba(255,255,255,0.08); border: 1px solid var(--border); }
+  .chat-bolha.bot{ align-self: flex-start; background: rgba(255,255,255,0.04); border: 1px dashed var(--border); color: var(--muted); font-style: italic; }
+  .chat-bolha.funcionario{ align-self: flex-end; background: rgba(34,197,94,0.18); border: 1px solid rgba(34,197,94,0.35); }
+
+  .chat-thread-rodape{
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+  .chat-thread-rodape input{
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .chat-vazio{ color: var(--muted); font-size: 13px; padding: 30px; text-align: center; margin: auto; }
+</style>
 </head>
-<body class="site-wrapper">
-    <header class="main-header">
-        <div class="container header-layout">
-            <div class="logo">
-                <h1>Jacaré <span>Utilidades</span></h1>
-            </div>
-            <nav class="search-area">
-                <input type="text" id="input-busca" placeholder="O que voce procura hoje?" onkeyup="if(event.key==='Enter') buscarProdutos()">
-                <button type="button" onclick="buscarProdutos()">Buscar</button>
-            </nav>
-        </div>
-    </header>
 
-    <div class="cart-fab" onclick="abrirCarrinho()" title="Ver Carrinho">
-        <span class="cart-icon">🛒</span>
-        <span id="cart-count">0</span>
+<body>
+
+<script>
+  async function checkAdminSession() {
+    try {
+      const response = await fetch('/api/admin-session', {
+        method: 'GET',
+        credentials: 'same-origin'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        window.location.href = '/funcionarios.html';
+        return;
+      }
+    } catch (error) {
+      window.location.href = '/funcionarios.html';
+    }
+  }
+
+  checkAdminSession();
+</script>
+
+<div class="topbar">
+  <div class="title">
+    <h1>🐊 Painel da Loja</h1>
+    <div class="subtitle">Atualiza a cada 5s • PENDENTE → PRONTO → ENTREGA → FINALIZADO</div>
+  </div>
+
+  <div class="actions">
+    <div class="pill"><span class="dot"></span><span id="statusConn">Conectado</span></div>
+
+    <button class="btn" onclick="baixarRelatorio()">📄 Relatório do dia</button>
+
+    <!-- ✅ NOVO: limpar finalizados do dia -->
+    <button class="btn" onclick="limparFinalizadosHoje()">🧹 Limpar finalizados de hoje</button>
+
+    <button class="btn" onclick="carregarPedidos()">🔄 Atualizar</button>
+
+    <button class="btn btn-chat" id="btn-abrir-chat" onclick="abrirModalChat()">
+      💬 Chat com clientes
+      <span class="chat-contador" id="chat-contador" style="display:none;">0</span>
+    </button>
+  </div>
+</div>
+
+<div class="board">
+
+  <div class="col">
+    <div class="colhead">
+      <h2>🟡 PENDENTE <span style="font-weight:400;font-size:0.7em;opacity:.75;">(aguardando pagamento)</span></h2>
+      <div class="count" id="count-pendente">0</div>
     </div>
+    <div class="list" id="pendente"></div>
+    <div class="empty" id="empty-pendente" style="display:none;">Nenhum pedido pendente.</div>
+  </div>
 
-    <main class="main-content">
-        <section class="hero">
-            <div class="container hero-grid">
-                <div class="hero-content">
-                    <span class="badge">Ofertas do Dia</span>
-                    <h1>Tem de tudo!<br><span>É um sucesso!</span></h1>
-                    <p>Variedade e preço baixo em Sete Lagoas e região.</p>
-                    <a href="#secao-promocoes" class="cta-button">Ver Promoções</a>
-                </div>
-                <div class="hero-banner">
-                    <img id="banner-img" src="" onerror="handleImageError(this)" alt="Banner Destaque">
-                </div>
-            </div>
-        </section>
-
-        <section class="categories">
-            <div class="container">
-                <div class="category-grid">
-                    <div class="category-item" onclick="filtrarPorCategoria('Tecnologia')">
-                        <div class="category-icon">📱</div><span>Tecnologia</span>
-                    </div>
-                    <div class="category-item" onclick="filtrarPorCategoria('Escolar')">
-                        <div class="category-icon">📚</div><span>Escolar</span>
-                    </div>
-                    <div class="category-item" onclick="filtrarPorCategoria('Brinquedos')">
-                        <div class="category-icon">🧸</div><span>Brinquedos</span>
-                    </div>
-                    <div class="category-item" onclick="filtrarPorCategoria('Utilidades')">
-                        <div class="category-icon">🛠️</div><span>Utilidades</span>
-                    </div>
-                    <div class="category-item" onclick="carregarProdutos()">
-                        <div class="category-icon">✨</div><span>Todos</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <div class="container" id="container-busca-voltar" style="display:none; padding: 20px 0;">
-            <button onclick="limparBusca()" class="cta-button" style="margin:0; background: var(--green); color: white; border:none; cursor:pointer;">Voltar ao inicio</button>
-        </div>
-
-        <div class="container" id="secao-promocoes">
-            <h2 class="section-title">Promoções Bombando</h2>
-            <section class="product-grid" id="grid-promocoes">
-                <div class="loading-msg"><p>Carregando ofertas...</p></div>
-            </section>
-        </div>
-
-        <div class="container" id="secao-kits-home" style="display:none;">
-            <div class="kits-section-header">
-                <div>
-                    <h2 class="section-title">Kits e combinações</h2>
-                    <p class="kits-section-subtitle">Sugestões de combinação que convivem com a vitrine atual sem poluir a experiencia.</p>
-                </div>
-            </div>
-            <section class="kit-grid" id="grid-kits-home"></section>
-        </div>
-
-        <div class="container" id="secao-geral" style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 30px;">
-            <h2 class="section-title">Tudo da Jacaré</h2>
-            <section class="product-grid" id="grid-produtos-geral">
-                <div class="loading-msg"><p>Organizando a vitrine...</p></div>
-            </section>
-        </div>
-
-        <div class="container" id="secao-kits-relacionados" style="display:none; margin-top: 40px;">
-            <div class="kits-section-header">
-                <div>
-                    <h2 class="section-title" id="titulo-kits-relacionados">Kits relacionados</h2>
-                    <p class="kits-section-subtitle" id="texto-kits-relacionados">Combinações sugeridas para este contexto.</p>
-                </div>
-            </div>
-            <section class="kit-grid" id="grid-kits-relacionados"></section>
-        </div>
-    </main>
-
-    <div id="modal-produto" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="fecharModal()">&times;</span>
-            <div class="modal-body">
-                <h2 id="modal-titulo" style="margin-bottom: 15px; font-family: 'Montserrat', sans-serif;"></h2>
-
-                <div id="modal-area-venda">
-                    <div class="image-container-branded">
-                        <div id="modal-galeria"></div>
-                        <div class="image-watermark">Jacaré Utilidades</div>
-                    </div>
-                    <div class="modal-info">
-                        <div style="display:flex; justify-content:flex-end; margin-top: 10px;">
-                            <button onclick="compartilharProduto()" class="btn-share" title="Compartilhar">🔗 Compartilhar</button>
-                        </div>
-                        <div id="modal-cores" style="display:none; margin: 10px 0;"></div>
-                        <div id="modal-descricao" class="modal-desc-text"></div>
-                        <div id="modal-quantidade-container" class="modal-qtd-selector">
-                            <button class="btn-qtd-modal" onclick="ajustarQtdModal(-1)">-</button>
-                            <span id="modal-qtd-numero">1</span>
-                            <button class="btn-qtd-modal" onclick="ajustarQtdModal(1)">+</button>
-                        </div>
-
-                        <div id="bloco-kit-produto" class="product-kit-callout" style="display:none;">
-                            <div>
-                                <h3>Combine este item com outros</h3>
-                                <p id="bloco-kit-produto-texto">Abra um kit flexivel e monte sua combinação.</p>
-                            </div>
-                            <button type="button" class="btn-secondary" onclick="abrirKitDoProdutoAtual()">Abrir kit</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="modal-area-escolha" style="display:none; text-align:center;">
-                    <div style="font-size: 3.5rem; margin-bottom: 10px;">✅</div>
-                    <h2 style="color:var(--green);">Adicionado!</h2>
-                    <p style="margin-bottom: 25px;">O que deseja fazer agora?</p>
-                    <div style="display:flex; flex-direction:column; gap:12px;">
-                        <button class="add-btn" onclick="fecharModal()" style="background:#f1f1f1; color:#333;">Continuar comprando</button>
-                        <button class="add-btn" onclick="abrirCarrinho()">Fechar o pedido</button>
-                    </div>
-                </div>
-
-                <div id="modal-area-checkout" style="display:none;">
-                    <div id="modal-lista-carrinho" class="cart-items-list"></div>
-                    <div id="checkout-resumo-pedido" class="checkout-summary"></div>
-
-                    <div class="checkout-box">
-                        <div class="checkout-section-heading">
-                            <h3>Como deseja receber?</h3>
-                            <p>Escolha a modalidade de entrega antes de seguir para o fechamento.</p>
-                        </div>
-                        <label>SEU WHATSAPP / TELEFONE:</label>
-                        <input
-                            type="tel"
-                            id="input-telefone"
-                            class="form-select"
-                            placeholder="(31) 99999-9999"
-                            inputmode="tel"
-                            autocomplete="tel"
-                            maxlength="15"
-                        >
-                        <div class="delivery-inline-note">
-                            Usamos esse número para avisar sobre o seu pedido (WhatsApp, ligação ou SMS).
-                        </div>
-
-                        <label>FORMA DE PAGAMENTO:</label>
-                        <select id="metodo-pagamento" class="form-select">
-                            <img src="img/pix.png" alt="Pix">
-                            <option value="Pix">🔷 Pix</option>
-                            <option value="Cartao">💳 Cartão</option>
-                        </select>
-
-                        <label>ENTREGA OU RETIRADA:</label>
-                        <select id="metodo-entrega" class="form-select" onchange="toggleEndereco()">
-                            <option value="Retirada">🏪 Retirar na Loja</option>
-                            <option value="Entrega">🛵 Entrega em Sete Lagoas</option>
-                        </select>
-
-                        <div id="aviso-horario" class="delivery-inline-note">
-                            Retirada permitida das 10:00 as 16:30 do mesmo dia.
-                        </div>
-
-                        <div id="campo-endereco" style="display:none; margin-top: 12px;">
-                            <label id="label-tipo-entrega" class="delivery-choice-label" style="display:none;">Escolha o tipo de entrega</label>
-                            <input type="hidden" id="tipo-entrega" value="">
-                            <div class="delivery-choice-grid">
-                                <button type="button" class="delivery-option" data-value="Turbo" onclick="selecionarTipoEntrega('Turbo')">
-                                    <span class="delivery-option-title">Turbo</span>
-                                    <span class="delivery-option-subtitle">Entrega prioritaria</span>
-                                </button>
-                                <button type="button" class="delivery-option" data-value="Economica" onclick="selecionarTipoEntrega('Economica')">
-                                    <span class="delivery-option-title">Economico</span>
-                                    <span class="delivery-option-subtitle">Melhor custo para o pedido</span>
-                                </button>
-                            </div>
-
-                            <div id="tipo-entrega-erro" class="delivery-choice-error" style="display:none;">
-                                Escolha Turbo ou Economico para continuar.
-                            </div>
-
-                            <div id="tipo-entrega-info" class="delivery-info-card" style="display:none;"></div>
-
-                            <input
-                                type="text"
-                                id="input-endereco"
-                                class="form-select"
-                                placeholder="Rua"
-                                autocomplete="off"
-                            >
-
-                            <div class="checkout-fields-grid">
-                                <input
-                                    type="text"
-                                    id="input-numero"
-                                    class="form-select"
-                                    placeholder="Numero"
-                                    autocomplete="off"
-                                >
-                                <div class="bairro-field-wrap">
-                                    <input
-                                        type="text"
-                                        id="input-bairro"
-                                        class="form-select"
-                                        placeholder="Bairro"
-                                        autocomplete="off"
-                                        list="lista-bairros-sete-lagoas"
-                                    >
-                                    <datalist id="lista-bairros-sete-lagoas"></datalist>
-                                    <div id="bairro-sugestao" class="bairro-helper" style="display:none;"></div>
-                                </div>
-                            </div>
-
-                            <div class="checkout-fields-grid">
-                                <input
-                                    type="text"
-                                    id="input-complemento"
-                                    class="form-select"
-                                    placeholder="Complemento"
-                                    autocomplete="off"
-                                >
-                                <select id="input-cidade" class="form-select">
-                                    <option value="Sete Lagoas" selected>Sete Lagoas</option>
-                                    <option value="Prudente de Morais">Prudente de Morais</option>
-                                    <option value="Inhauma">Inhauma</option>
-                                    <option value="Capim Branco">Capim Branco</option>
-                                    <option value="Matozinhos">Matozinhos</option>
-                                    <option value="Funilandia">Funilandia</option>
-                                    <option value="Cordisburgo">Cordisburgo</option>
-                                    <option value="Paraopeba">Paraopeba</option>
-                                    <option value="Aracai">Aracai</option>
-                                    <option value="Cachoeira da Prata">Cachoeira da Prata</option>
-                                </select>
-                            </div>
-
-                            <button
-                                type="button"
-                                id="btn-calcular-frete"
-                                class="add-btn checkout-calc-btn"
-                            >
-                                Calcular frete
-                            </button>
-
-                            <div id="frete-status" class="delivery-status">
-                                Frete ainda nao calculado.
-                            </div>
-
-                            <div id="frete-ajuda" class="delivery-helper-text">
-                                Informe rua, numero, bairro e cidade. Depois clique em calcular frete.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="modal-footer-preco" class="checkout-total">
-                    <span id="label-total">Total</span>: <span id="resumo-total-geral">R$ 0,00</span>
-                </div>
-
-                <!-- Área do Checkout Brick (Transparente) — aparece após clicar em Pagar -->
-                <div id="area-brick-pagamento" style="display:none; margin-top:16px;">
-                    <div id="brick-container"></div>
-                </div>
-
-                <button id="modal-btn-acao" class="add-btn"></button>
-            </div>
-        </div>
+  <div class="col">
+    <div class="colhead">
+      <h2>🟢 PRONTO</h2>
+      <div class="count" id="count-pronto">0</div>
     </div>
+    <div class="list" id="pronto"></div>
+    <div class="empty" id="empty-pronto" style="display:none;">Nenhum pedido pronto.</div>
+  </div>
 
-    <div id="modal-kit" class="modal">
-        <div class="modal-content modal-content-kit">
-            <span class="close-modal" onclick="fecharModalKit()">&times;</span>
-            <div class="modal-body">
-                <div class="kit-modal-header">
-                    <h2 id="modal-kit-titulo" style="margin-bottom: 10px; font-family: 'Montserrat', sans-serif;"></h2>
-                    <p id="modal-kit-descricao" class="kit-modal-description"></p>
-                </div>
-
-                <div id="lista-itens-kit" class="kit-items-list"></div>
-
-                <div class="kit-summary-box">
-                    <div class="kit-summary-row">
-                        <span>Subtotal</span>
-                        <strong id="kit-resumo-subtotal">R$ 0,00</strong>
-                    </div>
-                    <div class="kit-summary-row">
-                        <span>Desconto</span>
-                        <strong id="kit-resumo-desconto">R$ 0,00</strong>
-                    </div>
-                    <div class="kit-summary-row kit-summary-total">
-                        <span>Total final</span>
-                        <strong id="kit-resumo-total">R$ 0,00</strong>
-                    </div>
-                    <p id="kit-resumo-regra" class="kit-summary-note"></p>
-                </div>
-
-                <button id="modal-kit-btn-acao" class="add-btn" type="button">Adicionar kit ao carrinho</button>
-            </div>
-        </div>
+  <div class="col">
+    <div class="colhead">
+      <h2>🚚 ENTREGA</h2>
+      <div class="count" id="count-entrega">0</div>
     </div>
+    <div class="list" id="entrega"></div>
+    <div class="empty" id="empty-entrega" style="display:none;">Nenhum pedido em entrega.</div>
+  </div>
 
-    <footer class="footer-premium">
-        <div class="container">
-            <h3>Jacaré Utilidades</h3>
-            <p>Variedade e agilidade para Sete Lagoas e região.</p>
-            <div style="margin-top:20px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap;">
-                <a href="https://wa.me/31998997812" target="_blank" class="social-btn">WhatsApp</a>
-                <a href="https://www.instagram.com/jacareutilidades1" target="_blank" class="social-btn" style="background:#E1306C;">Instagram</a>
-            </div>
-            <div class="dev-credit"> Desenvolvido por
-                <img src="logo-caiman.png" alt="Caiman Dev Studio">
-                <strong>Caiman Dev Studio</strong>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>© 2026 Jacaré Utilidades - É um Sucesso!</p>
-        </div>
-    </footer>
+  <div class="col">
+    <div class="colhead">
+      <h2>✅ FINALIZADO</h2>
+      <div class="count" id="count-finalizado">0</div>
+    </div>
+    <div class="list" id="finalizado"></div>
+    <div class="empty" id="empty-finalizado" style="display:none;">Nenhum pedido finalizado.</div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SDK do Mercado Pago Bricks (Checkout Transparente) -->
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
-    <script src="kits.js"></script>
-    <script src="script.js"></script>
-    <script src="chat-widget.js"></script>
+</div>
+
+<div id="chat-overlay" onclick="if(event.target===this) fecharModalChat()">
+  <div id="chat-modal">
+    <div class="chat-lista">
+      <div class="chat-lista-header">
+        <span>💬 Conversas</span>
+        <button onclick="fecharModalChat()" title="Fechar">✕</button>
+      </div>
+      <div class="chat-lista-itens" id="chat-lista-itens">
+        <div class="empty">Carregando...</div>
+      </div>
+    </div>
+    <div class="chat-thread" id="chat-thread">
+      <div class="chat-vazio">Selecione uma conversa na lista ao lado.</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+const supabaseClient = window.supabase.createClient(
+  "https://ffmtqfjafolydcdaldap.supabase.co",
+  "sb_publishable_BoUeyott9mr3wpDRS4VP7g_mn7mAQx_"
+)
+
+let totalPedidosAnterior = 0
+
+function formatarMoeda(valor){
+  return Number(valor || 0).toFixed(2).replace('.', ',')
+}
+
+function formatarHora(iso){
+  if(!iso) return ""
+  const d = new Date(iso)
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+}
+
+function formatarTelefoneExibicao(telefone){
+  const digitos = String(telefone || "").replace(/\D/g, "")
+  if(digitos.length === 11) return `(${digitos.slice(0,2)}) ${digitos.slice(2,7)}-${digitos.slice(7)}`
+  if(digitos.length === 10) return `(${digitos.slice(0,2)}) ${digitos.slice(2,6)}-${digitos.slice(6)}`
+  return telefone
+}
+
+function tocarSomNovoPedido(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+
+    gain.gain.setValueAtTime(0.05, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12)
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start()
+    osc.stop(ctx.currentTime + 0.12)
+  }catch(e){
+    console.error("Erro ao tocar som:", e)
+  }
+}
+
+function normalizarItens(itensBrutos){
+  let itens = itensBrutos
+
+  if(typeof itens === "string"){
+    try{ itens = JSON.parse(itens) }catch(e){ return [] }
+  }
+
+  if(Array.isArray(itens)) return itens
+  if(itens && typeof itens === "object") return Object.values(itens)
+  return []
+}
+
+function montarItensHTML(itensBrutos){
+  const itens = normalizarItens(itensBrutos)
+  if(!itens.length) return "Sem itens"
+
+  let html = ""
+  itens.forEach(i => {
+    const qtd = Number(i.qtd || i.quantidade || 0)
+    const nome = i.nome || i.name || "Item"
+    const preco = Number(i.preco || i.price || 0)
+    const presenteQtd = Number(i.presenteQtd || 0)
+    const subtotal = preco * qtd
+    const txtPresente = presenteQtd > 0 ? ` (🎁 ${presenteQtd} presente)` : ""
+    html += `• (${qtd}x) ${nome}${txtPresente} — R$ ${formatarMoeda(subtotal)}<br>`
+  })
+  return html
+}
+
+function setCount(id, value){
+  document.getElementById(id).textContent = String(value)
+}
+
+function setEmpty(status, isEmpty){
+  document.getElementById(`empty-${status}`).style.display = isEmpty ? "block" : "none"
+}
+
+async function carregarPedidos(){
+  const { data, error } = await supabaseClient
+    .from('pedidos')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if(error){
+    console.error(error)
+    document.getElementById("statusConn").textContent = "Erro"
+    return
+  }
+
+  document.getElementById("statusConn").textContent = "Conectado"
+
+  if(data.length > totalPedidosAnterior && totalPedidosAnterior !== 0){
+    tocarSomNovoPedido()
+  }
+  totalPedidosAnterior = data.length
+
+  const cols = ["pendente","pronto","entrega","finalizado"]
+  cols.forEach(c => document.getElementById(c).innerHTML = "")
+
+  let counts = { pendente:0, pronto:0, entrega:0, finalizado:0 }
+
+  data.forEach(p => {
+    const st = (p.status || "").toLowerCase()
+    if(!counts.hasOwnProperty(st)) return
+    counts[st]++
+
+    const itensHTML = montarItensHTML(p.itens)
+    const ehRetirada = !p.endereco
+
+    let actions = ""
+
+    if(p.status === "PENDENTE"){
+      actions += `<button class="btn btn-primary" onclick="marcarPronto('${p.code}','${p.token_confirmacao}')">💰 Já recebi o pagamento</button>`
+    }
+
+    if(p.status === "PRONTO" && !p.embalado){
+      actions += `<button class="btn btn-primary" onclick="marcarEmbalado('${p.code}')">📦 Embalado, pronto pra sair</button>`
+    }
+
+    if(p.status === "PRONTO" && p.embalado && !ehRetirada){
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','ENTREGA')">🚚 Saiu para entrega</button>`
+    }
+
+    if(p.status === "PRONTO" && p.embalado && ehRetirada){
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','FINALIZADO')">🏪 Cliente retirou</button>`
+    }
+
+    if(p.status === "ENTREGA"){
+      actions += `<button class="btn btn-warn" onclick="mudarStatus('${p.code}','FINALIZADO')">✅ Finalização</button>`
+    }
+
+    if(p.status === "FINALIZADO"){
+      actions += `<button class="btn btn-danger" onclick="removerPedido('${p.id}')">🗑 Remover</button>`
+    }
+
+    const seloEmbalado = (p.status === "PRONTO" && p.embalado)
+      ? '<div class="muted">📦 Embalado — pronto pra sair</div>'
+      : '';
+
+    const seloTipo = ehRetirada
+      ? '<div class="muted">🏪 Retirada na loja</div>'
+      : '<div class="muted">🛵 Entrega</div>';
+
+    const card = `
+      <div class="card">
+        <div class="cardtop">
+          <div class="code">Pedido: ${p.code || "-"}</div>
+          <div class="time">${formatarHora(p.created_at)}</div>
+        </div>
+
+        <div class="items">
+          <b>Itens:</b><br>${itensHTML}
+        </div>
+
+        <div class="meta">
+          <div><b>Total:</b> R$ ${formatarMoeda(p.total)}</div>
+          <div class="muted"><b>Endereço:</b> ${p.endereco || "-"}</div>
+          <div class="muted"><b>Telefone:</b> ${p.telefone ? formatarTelefoneExibicao(p.telefone) : "-"}</div>
+          ${seloTipo}
+          ${seloEmbalado}
+        </div>
+
+        <div class="cardactions">${actions}</div>
+      </div>
+    `
+
+    document.getElementById(st).innerHTML += card
+  })
+
+  setCount("count-pendente", counts.pendente)
+  setCount("count-pronto", counts.pronto)
+  setCount("count-entrega", counts.entrega)
+  setCount("count-finalizado", counts.finalizado)
+
+  setEmpty("pendente", counts.pendente === 0)
+  setEmpty("pronto", counts.pronto === 0)
+  setEmpty("entrega", counts.entrega === 0)
+  setEmpty("finalizado", counts.finalizado === 0)
+}
+
+async function marcarPronto(codigo, token){
+  const ok = confirm(
+    "O sistema ja confirma o pagamento sozinho quando o Mercado Pago avisa.\n\n" +
+    "So use isso se voce CONFERIU de verdade que o cliente pagou (ex: Pix caiu na conta) " +
+    "e o pedido esta demorando pra atualizar.\n\n" +
+    "Confirma que o pagamento foi recebido?"
+  )
+  if(!ok) return
+
+  const r = await fetch("/api/confirmar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ codigo, token })
+  })
+
+  const j = await r.json()
+
+  if(!j.sucesso){
+    alert("Erro ao atualizar")
+    return
+  }
+
+  carregarPedidos()
+}
+
+async function marcarEmbalado(codigo){
+  const r = await fetch("/api/marcar-embalado", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ codigo })
+  })
+
+  const j = await r.json().catch(() => ({}))
+
+  if(!r.ok || !j.sucesso){
+    alert("Erro ao marcar como embalado")
+    console.error(j)
+    return
+  }
+
+  carregarPedidos()
+}
+
+async function mudarStatus(codigo, status){
+  const r = await fetch("/api/atualizar-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ codigo, status })
+  })
+
+  const j = await r.json().catch(() => ({}))
+
+  if(!r.ok || !j.sucesso){
+    alert("Erro ao atualizar")
+    console.error(j)
+    return
+  }
+
+  carregarPedidos()
+}
+
+async function removerPedido(id){
+  const ok = confirm("Remover este pedido finalizado?")
+  if(!ok) return
+
+  const r = await fetch("/api/remover",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ id })
+  })
+
+  const j = await r.json()
+  if(!j.sucesso){
+    alert("Erro ao remover")
+    console.error(j)
+    return
+  }
+
+  carregarPedidos()
+}
+
+function baixarRelatorio(){
+  window.open("/api/relatorio", "_blank")
+}
+
+/* ✅ NOVO: limpar finalizados de hoje via /api/limpar_finalizados */
+async function limparFinalizadosHoje(){
+  const ok = confirm("Isso vai APAGAR do banco todos os pedidos FINALIZADOS de hoje. Já gerou o relatório?")
+  if(!ok) return
+
+  const r = await fetch("/api/limpar_finalizados",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({})
+  })
+
+  const j = await r.json()
+  if(!j.sucesso){
+    alert("Erro ao limpar finalizados")
+    console.error(j)
+    return
+  }
+
+  alert(`Finalizados removidos: ${j.removidos}`)
+  carregarPedidos()
+}
+
+carregarPedidos()
+setInterval(carregarPedidos, 5000)
+
+/* ================= CHAT COM CLIENTES ================= */
+
+let conversaSelecionadaId = null
+let ultimaContagemAguardando = 0
+
+function formatarHoraChat(iso){
+  if(!iso) return ""
+  const d = new Date(iso)
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+}
+
+function formatarTelefoneChat(telefone){
+  const digitos = String(telefone || "").replace(/\D/g, "")
+  if(digitos.length === 11) return `(${digitos.slice(0,2)}) ${digitos.slice(2,7)}-${digitos.slice(7)}`
+  if(digitos.length === 10) return `(${digitos.slice(0,2)}) ${digitos.slice(2,6)}-${digitos.slice(6)}`
+  return telefone || "-"
+}
+
+async function carregarConversas(){
+  const { data, error } = await supabaseClient
+    .from('conversas')
+    .select('*')
+    .in('status', ['aguardando_atendente', 'em_atendimento'])
+    .order('updated_at', { ascending: false })
+
+  if(error){
+    console.error("Erro ao carregar conversas:", error)
+    return
+  }
+
+  const aguardando = data.filter(c => c.status === 'aguardando_atendente')
+
+  if(aguardando.length > ultimaContagemAguardando && ultimaContagemAguardando !== 0){
+    tocarSomNovoPedido()
+  }
+  ultimaContagemAguardando = aguardando.length
+
+  const contador = document.getElementById('chat-contador')
+  if(aguardando.length > 0){
+    contador.style.display = 'flex'
+    contador.textContent = String(aguardando.length)
+  } else {
+    contador.style.display = 'none'
+  }
+
+  const lista = document.getElementById('chat-lista-itens')
+  if(!data.length){
+    lista.innerHTML = '<div class="empty">Nenhuma conversa em aberto.</div>'
+    return
+  }
+
+  lista.innerHTML = ''
+  data.forEach(c => {
+    const tagClasse = c.status === 'aguardando_atendente' ? 'aguardando' : 'em_atendimento'
+    const tagTexto = c.status === 'aguardando_atendente' ? 'Aguardando' : 'Em atendimento'
+
+    const item = document.createElement('div')
+    item.className = 'chat-item' + (c.id === conversaSelecionadaId ? ' ativo' : '')
+    item.onclick = () => abrirConversa(c.id)
+    item.innerHTML = `
+      <div class="chat-item-topo">
+        <span class="chat-item-tel">${formatarTelefoneChat(c.telefone)}</span>
+        <span class="chat-item-hora">${formatarHoraChat(c.updated_at)}</span>
+      </div>
+      <span class="chat-tag ${tagClasse}">${tagTexto}</span>
+    `
+    lista.appendChild(item)
+  })
+}
+
+async function abrirConversa(conversaId){
+  conversaSelecionadaId = conversaId
+  carregarConversas()
+
+  const { data: conversa } = await supabaseClient
+    .from('conversas')
+    .select('*')
+    .eq('id', conversaId)
+    .single()
+
+  if(!conversa) return
+
+  if(conversa.status === 'aguardando_atendente'){
+    await supabaseClient.from('conversas').update({ status: 'em_atendimento' }).eq('id', conversaId)
+  }
+
+  await renderizarThread(conversa)
+}
+
+async function renderizarThread(conversa){
+  const { data: mensagens } = await supabaseClient
+    .from('mensagens')
+    .select('*')
+    .eq('conversa_id', conversa.id)
+    .order('created_at', { ascending: true })
+
+  const thread = document.getElementById('chat-thread')
+  thread.innerHTML = `
+    <div class="chat-thread-header">
+      <div>
+        <div class="titulo">${formatarTelefoneChat(conversa.telefone)}</div>
+        <div class="sub">Conversa iniciada em ${formatarHoraChat(conversa.created_at)}</div>
+      </div>
+      <button class="btn btn-danger" onclick="encerrarConversa('${conversa.id}')">Encerrar</button>
+    </div>
+    <div class="chat-thread-msgs" id="chat-thread-msgs"></div>
+    <div class="chat-thread-rodape">
+      <input id="chat-input-resposta" type="text" placeholder="Digite sua resposta..." onkeydown="if(event.key==='Enter') enviarRespostaChat('${conversa.id}')">
+      <button class="btn btn-primary" onclick="enviarRespostaChat('${conversa.id}')">Enviar</button>
+    </div>
+  `
+
+  const msgsDiv = document.getElementById('chat-thread-msgs')
+  msgsDiv.innerHTML = (mensagens || []).map(m => `
+    <div class="chat-bolha ${m.remetente}">${m.texto}</div>
+  `).join('')
+  msgsDiv.scrollTop = msgsDiv.scrollHeight
+}
+
+async function enviarRespostaChat(conversaId){
+  const input = document.getElementById('chat-input-resposta')
+  const texto = input.value.trim()
+  if(!texto) return
+
+  input.value = ''
+
+  await supabaseClient.from('mensagens').insert([
+    { conversa_id: conversaId, remetente: 'funcionario', texto }
+  ])
+
+  await supabaseClient.from('conversas').update({ updated_at: new Date().toISOString() }).eq('id', conversaId)
+
+  const { data: conversa } = await supabaseClient.from('conversas').select('*').eq('id', conversaId).single()
+  if(conversa) renderizarThread(conversa)
+}
+
+async function encerrarConversa(conversaId){
+  const ok = confirm("Encerrar esta conversa?")
+  if(!ok) return
+
+  await supabaseClient.from('conversas').update({ status: 'encerrada' }).eq('id', conversaId)
+
+  conversaSelecionadaId = null
+  document.getElementById('chat-thread').innerHTML = '<div class="chat-vazio">Selecione uma conversa na lista ao lado.</div>'
+  carregarConversas()
+}
+
+function abrirModalChat(){
+  document.getElementById('chat-overlay').classList.add('aberto')
+  carregarConversas()
+}
+
+function fecharModalChat(){
+  document.getElementById('chat-overlay').classList.remove('aberto')
+}
+
+carregarConversas()
+setInterval(() => {
+  carregarConversas()
+  if(conversaSelecionadaId && document.getElementById('chat-overlay').classList.contains('aberto')){
+    supabaseClient.from('conversas').select('*').eq('id', conversaSelecionadaId).single()
+      .then(({ data }) => { if(data) renderizarThread(data) })
+  }
+}, 5000)
+</script>
+
 </body>
 </html>
