@@ -139,6 +139,24 @@
 
         <div class="container" id="secao-geral" style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 30px;">
             <h2 class="section-title">Tudo da Jacaré</h2>
+
+            <div class="vitrine-filtros" id="vitrine-filtros" style="display:none;">
+                <div class="chips-subcategoria" id="chips-subcategoria"></div>
+
+                <div class="vitrine-controles">
+                    <label class="promo-toggle">
+                        <input type="checkbox" id="check-somente-promocao" onchange="aplicarFiltrosVitrine()">
+                        Só promoções
+                    </label>
+
+                    <select id="select-ordenacao" class="form-select-vitrine" onchange="aplicarFiltrosVitrine()">
+                        <option value="nome">Ordenar: Nome (A-Z)</option>
+                        <option value="menor-preco">Ordenar: Menor preço</option>
+                        <option value="maior-preco">Ordenar: Maior preço</option>
+                    </select>
+                </div>
+            </div>
+
             <section class="product-grid" id="grid-produtos-geral">
                 <div class="loading-msg"><p>Organizando a vitrine...</p></div>
             </section>
