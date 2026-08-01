@@ -17,6 +17,9 @@
   let pollingId = null;
   let ultimaMensagemId = null;
 
+  let clienteNome = localStorage.getItem("jac_cliente_nome") || null;
+  let clienteTelefone = localStorage.getItem("jac_cliente_telefone") || null;
+
   // ------- ESTILOS -------
   const estilos = `
     #jac-chat-bolha {
@@ -306,11 +309,26 @@
     pararPolling();
     limparCorpo();
     esconderInputPadrao();
-    adicionarMensagemVisual("bot", "Oi! 🐊 Eu sou o assistente da Jacaré Utilidades. Como posso te ajudar hoje?");
+    const saudacao = clienteNome ? `Oi, ${clienteNome}! 🐊` : "Oi! 🐊";
+    adicionarMensagemVisual("bot", `${saudacao} Eu sou o assistente da Jacaré Utilidades. Como posso te ajudar hoje?`);
     adicionarBlocoOpcoes([
       ["🙋 Ajuda / Dúvida", mostrarTelaAjuda],
       ["📦 Rastrear meu pedido", mostrarTelaRastreio],
     ]);
+  }
+
+  function mostrarTelaNome() {
+    telaAtual = "nome";
+    limparCorpo();
+    adicionarMensagemVisual("bot", "Antes de começar, qual é o seu nome?");
+    mostrarInputPadrao("Seu nome");
+
+    window.__jacChatProximoEnvio = async (valor) => {
+      window.__jacChatProximoEnvio = null;
+      clienteNome = valor.trim();
+      localStorage.setItem("jac_cliente_nome", clienteNome);
+      mostrarMenuPrincipal();
+    };
   }
 
   function mostrarTelaAjuda() {
@@ -417,7 +435,7 @@
 
     const { data, error } = await supabaseClient
       .from("conversas")
-      .insert([{ telefone, status: "bot" }])
+      .insert([{ telefone, nome: clienteNome, status: "bot" }])
       .select()
       .single();
 
@@ -427,6 +445,9 @@
     }
 
     conversaAtual = data;
+    clienteTelefone = telefone;
+    localStorage.setItem("jac_cliente_telefone", telefone);
+    localStorage.setItem("jac_conversa_id", data.id);
     return conversaAtual;
   }
 
@@ -447,7 +468,6 @@
     adicionarMensagemVisual("bot", "Antes de chamar um atendente, me confirma seu WhatsApp/telefone com DDD:");
     mostrarInputPadrao("(31) 99999-9999");
 
-    const inputHandlerOriginal = window.__jacChatProximoEnvio;
     window.__jacChatProximoEnvio = async (valor) => {
       window.__jacChatProximoEnvio = null;
       await abrirEscalonamentoComTelefone(valor.replace(/\D/g, ""), mensagemInicial);
@@ -476,7 +496,7 @@
   }
 
   function obterTelefoneCliente() {
-    return conversaAtual ? conversaAtual.telefone : null;
+    return clienteTelefone || (conversaAtual ? conversaAtual.telefone : null);
   }
 
   async function enviarMensagemHumana(texto) {
@@ -530,6 +550,7 @@
     if (conversaAtual) {
       await supabaseClient.from("conversas").update({ status: "encerrada" }).eq("id", conversaAtual.id);
     }
+    localStorage.removeItem("jac_conversa_id");
     pararPolling();
     limparCorpo();
     adicionarMensagemVisual("bot", "Obrigado por falar com a gente! Se puder, deixa sua avaliação — isso ajuda muito a loja. 💚");
@@ -611,8 +632,57 @@
     painel.classList.toggle("jac-aberto");
 
     if (abrindo && corpo().children.length === 0) {
-      mostrarMenuPrincipal();
+      iniciarFluxoChat();
     }
+  }
+
+  async function iniciarFluxoChat() {
+    const conversaIdSalva = localStorage.getItem("jac_conversa_id");
+
+    if (conversaIdSalva) {
+      const retomou = await tentarRetomarConversa(conversaIdSalva);
+      if (retomou) return;
+    }
+
+    if (!clienteNome) {
+      mostrarTelaNome();
+      return;
+    }
+
+    mostrarMenuPrincipal();
+  }
+
+  async function tentarRetomarConversa(conversaId) {
+    const { data: conversa, error } = await supabaseClient
+      .from("conversas")
+      .select("*")
+      .eq("id", conversaId)
+      .single();
+
+    if (error || !conversa || conversa.status === "encerrada") {
+      localStorage.removeItem("jac_conversa_id");
+      return false;
+    }
+
+    conversaAtual = conversa;
+    clienteTelefone = conversa.telefone;
+    telaAtual = "conversa-humana";
+
+    const { data: mensagens } = await supabaseClient
+      .from("mensagens")
+      .select("*")
+      .eq("conversa_id", conversaId)
+      .order("created_at", { ascending: true });
+
+    limparCorpo();
+    adicionarMensagemVisual("bot", "Você já tem uma conversa em andamento com a gente. Aqui está o histórico:");
+    (mensagens || []).forEach((m) => {
+      adicionarMensagemVisual(m.remetente, m.texto);
+      ultimaMensagemId = m.created_at;
+    });
+    mostrarInputPadrao("Escreva sua mensagem...");
+    iniciarPolling();
+    return true;
   }
 
   // ------- ANIMAÇÃO: "seu pedido chegou, acompanhe aqui" -------
