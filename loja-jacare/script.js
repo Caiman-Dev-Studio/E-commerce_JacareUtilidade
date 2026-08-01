@@ -1120,6 +1120,8 @@ function renderizarLista(lista, elementId) {
                     <img
                         src="${produto.imagem_url}"
                         onerror="handleImageError(this)"
+                        loading="lazy"
+                        decoding="async"
                     >
                 </div>
 
@@ -1318,6 +1320,7 @@ function abrirDetalhes(id, opcoes = {}) {
             src="${imagens[0]}" 
             id="foto-principal-modal" 
             class="main-modal-img"
+            decoding="async"
         >
     `;
 
@@ -1627,6 +1630,8 @@ function renderizarModalKit() {
                             src="${item.imagem_url}"
                             onerror="handleImageError(this)"
                             alt="${item.nome}"
+                            loading="lazy"
+                            decoding="async"
                         >
 
                         <div>
