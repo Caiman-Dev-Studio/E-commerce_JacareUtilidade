@@ -21,20 +21,20 @@
   const estilos = `
     #jac-chat-bolha {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 60px;
-      height: 60px;
+      bottom: 25px;
+      left: 20px;
+      width: 62px;
+      height: 62px;
       border-radius: 50%;
       background: linear-gradient(145deg, #16a34a, #15803d);
       box-shadow: 0 8px 20px rgba(0,0,0,0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 30px;
       cursor: pointer;
       z-index: 9998;
-      border: none;
+      border: 2px solid #fff;
       transition: transform 0.15s ease;
     }
     #jac-chat-bolha:hover { transform: scale(1.06); }
@@ -56,8 +56,8 @@
 
     #jac-chat-painel {
       position: fixed;
-      bottom: 92px;
-      right: 20px;
+      bottom: 96px;
+      left: 20px;
       width: 340px;
       max-width: calc(100vw - 32px);
       height: 480px;
@@ -195,7 +195,37 @@
     }
 
     @media (max-width: 420px) {
-      #jac-chat-painel { right: 16px; left: 16px; width: auto; }
+      #jac-chat-painel { left: 16px; right: 16px; width: auto; }
+    }
+
+    #jac-chat-dica-balao {
+      position: fixed;
+      bottom: 96px;
+      left: 20px;
+      max-width: 220px;
+      background: #fff;
+      color: #14532d;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+      font-size: 13px;
+      line-height: 1.4;
+      z-index: 9997;
+      cursor: pointer;
+      animation: jac-dica-entrar 0.35s ease;
+    }
+    @keyframes jac-dica-entrar {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .jac-caixa-voadora {
+      position: fixed;
+      font-size: 30px;
+      z-index: 10000;
+      pointer-events: none;
+      transition: left 0.9s cubic-bezier(0.3, 0, 0.2, 1), top 0.9s cubic-bezier(0.3, 0, 0.2, 1), transform 0.9s ease, opacity 0.3s ease 0.7s;
     }
   `;
 
@@ -534,8 +564,8 @@
   function montarWidget() {
     const bolha = el(
       "button",
-      { id: "jac-chat-bolha", onclick: alternarPainel, "aria-label": "Abrir chat" },
-      "💬"
+      { id: "jac-chat-bolha", onclick: alternarPainel, "aria-label": "Falar com a Jacaré Utilidades" },
+      "🐊"
     );
 
     const header = el(
@@ -585,6 +615,77 @@
     }
   }
 
+  // ------- ANIMAÇÃO: "seu pedido chegou, acompanhe aqui" -------
+  function animarCaixaAteChat() {
+    const bolha = document.getElementById("jac-chat-bolha");
+    if (!bolha) return;
+
+    const destino = bolha.getBoundingClientRect();
+    const caixa = el("div", { className: "jac-caixa-voadora" }, "📦");
+
+    // ponto de partida: um pouco acima do centro da tela
+    caixa.style.left = `${window.innerWidth / 2 - 15}px`;
+    caixa.style.top = `${window.innerHeight / 2 - 120}px`;
+    document.body.appendChild(caixa);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        caixa.style.left = `${destino.left + destino.width / 2 - 15}px`;
+        caixa.style.top = `${destino.top + destino.height / 2 - 15}px`;
+        caixa.style.transform = "scale(0.35)";
+        caixa.style.opacity = "0";
+      });
+    });
+
+    setTimeout(() => caixa.remove(), 1100);
+  }
+
+  function mostrarDicaRastreio(codigoPedido) {
+    const existente = document.getElementById("jac-chat-dica-balao");
+    if (existente) existente.remove();
+
+    const balao = el(
+      "div",
+      {
+        id: "jac-chat-dica-balao",
+        onclick: () => {
+          balao.remove();
+          abrirPainelSeFechado();
+          mostrarTelaRastreio();
+          const input = document.getElementById("jac-chat-input");
+          if (input) input.value = codigoPedido || "";
+        },
+      },
+      `📦 Pedido ${codigoPedido ? codigoPedido + " " : ""}registrado! Clique aqui pra acompanhar quando quiser.`
+    );
+
+    document.body.appendChild(balao);
+    setTimeout(() => balao.remove(), 9000);
+  }
+
+  function abrirPainelSeFechado() {
+    const painel = document.getElementById("jac-chat-painel");
+    if (!painel.classList.contains("jac-aberto")) {
+      painel.classList.add("jac-aberto");
+    }
+  }
+
+  function verificarRetornoDePedido() {
+    const params = new URLSearchParams(window.location.search);
+    const pedidoRecente = params.get("pedido_recente");
+    if (!pedidoRecente) return;
+
+    // limpa o parâmetro da URL sem recarregar a página
+    params.delete("pedido_recente");
+    const novaUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
+    window.history.replaceState({}, "", novaUrl);
+
+    setTimeout(() => {
+      animarCaixaAteChat();
+      setTimeout(() => mostrarDicaRastreio(pedidoRecente), 900);
+    }, 500);
+  }
+
   // ------- INICIALIZAÇÃO -------
   document.addEventListener("DOMContentLoaded", () => {
     if (typeof supabaseClient === "undefined") {
@@ -593,5 +694,6 @@
     }
     injetarEstilos();
     montarWidget();
+    verificarRetornoDePedido();
   });
 })();
