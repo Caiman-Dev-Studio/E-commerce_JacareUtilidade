@@ -882,7 +882,7 @@ async function renderizarThread(conversa){
     </div>
     <div class="chat-thread-msgs" id="chat-thread-msgs"></div>
     <div class="chat-thread-rodape">
-      <input id="chat-input-resposta" type="text" placeholder="Digite sua resposta..." onkeydown="if(event.key==='Enter') enviarRespostaChat('${conversa.id}')">
+      <input id="chat-input-resposta" type="text" autocomplete="off" placeholder="Digite sua resposta..." onkeydown="if(event.key==='Enter') enviarRespostaChat('${conversa.id}')">
       <button class="btn btn-primary" onclick="enviarRespostaChat('${conversa.id}')">Enviar</button>
     </div>
   `
@@ -892,6 +892,31 @@ async function renderizarThread(conversa){
     <div class="chat-bolha ${m.remetente}">${m.texto}</div>
   `).join('')
   msgsDiv.scrollTop = msgsDiv.scrollHeight
+}
+
+async function atualizarApenasMensagens(conversaId){
+  const msgsDiv = document.getElementById('chat-thread-msgs')
+  if(!msgsDiv) return
+
+  const { data: mensagens } = await supabaseClient
+    .from('mensagens')
+    .select('*')
+    .eq('conversa_id', conversaId)
+    .order('created_at', { ascending: true })
+
+  const quantidadeAtual = msgsDiv.querySelectorAll('.chat-bolha').length
+  const quantidadeNova = (mensagens || []).length
+
+  // só re-renderiza se algo realmente mudou, pra não perder a posição do scroll à toa
+  if(quantidadeNova === quantidadeAtual) return
+
+  const estavaNoFinal = msgsDiv.scrollTop + msgsDiv.clientHeight >= msgsDiv.scrollHeight - 20
+
+  msgsDiv.innerHTML = (mensagens || []).map(m => `
+    <div class="chat-bolha ${m.remetente}">${m.texto}</div>
+  `).join('')
+
+  if(estavaNoFinal) msgsDiv.scrollTop = msgsDiv.scrollHeight
 }
 
 async function enviarRespostaChat(conversaId){
@@ -935,8 +960,7 @@ carregarConversas()
 setInterval(() => {
   carregarConversas()
   if(conversaSelecionadaId && document.getElementById('chat-overlay').classList.contains('aberto')){
-    supabaseClient.from('conversas').select('*').eq('id', conversaSelecionadaId).single()
-      .then(({ data }) => { if(data) renderizarThread(data) })
+    atualizarApenasMensagens(conversaSelecionadaId)
   }
 }, 5000)
 </script>
