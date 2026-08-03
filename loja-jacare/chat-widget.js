@@ -502,19 +502,25 @@
       return false;
     }
 
-    conversaAtual = conversa;
-    clienteTelefone = conversa.telefone;
-    telaAjudaAtual = "conversa-humana";
-
     const { data: mensagens } = await supabaseClient
       .from("mensagens")
       .select("*")
       .eq("conversa_id", conversaId)
       .order("created_at", { ascending: true });
 
+    if (!mensagens || mensagens.length === 0) {
+      // conversa vazia (nunca chegou a ter troca de mensagens): não vale a pena retomar
+      localStorage.removeItem("jac_conversa_id");
+      return false;
+    }
+
+    conversaAtual = conversa;
+    clienteTelefone = conversa.telefone;
+    telaAjudaAtual = "conversa-humana";
+
     ajuda.limparCorpo();
     ajuda.adicionarMensagemVisual("bot", "Você já tem uma conversa em andamento com a gente. Aqui está o histórico:");
-    (mensagens || []).forEach((m) => {
+    mensagens.forEach((m) => {
       ajuda.adicionarMensagemVisual(m.remetente, m.texto);
       ultimaMensagemId = m.created_at;
     });
