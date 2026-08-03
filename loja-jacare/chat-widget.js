@@ -1,5 +1,5 @@
 /* ============================================================
-   Chat Jacaré Utilidades
+   Chat Jacaré Utilidades — Ajuda e Rastreio SEPARADOS
    Requer que script.js (com o supabaseClient global) já tenha
    sido carregado ANTES deste arquivo.
    ============================================================ */
@@ -12,58 +12,63 @@
   const POLL_INTERVAL_MS = 4000;
 
   // ------- ESTADO -------
-  let conversaAtual = null; // registro da conversa no Supabase
-  let telaAtual = "menu"; // menu | ajuda | rastreio | conversa-humana
+  let conversaAtual = null; // conversa de AJUDA no Supabase
+  let telaAjudaAtual = "inicio";
   let pollingId = null;
-  let ultimaMensagemId = null;
 
   let clienteNome = localStorage.getItem("jac_cliente_nome") || null;
   let clienteTelefone = localStorage.getItem("jac_cliente_telefone") || null;
 
   // ------- ESTILOS -------
   const estilos = `
-    #jac-chat-bolha {
+    #jac-ajuda-bolha, #jac-rastreio-bolha {
       position: fixed;
-      bottom: 25px;
       left: 20px;
-      width: 62px;
-      height: 62px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
-      background: linear-gradient(145deg, #16a34a, #15803d);
       box-shadow: 0 8px 20px rgba(0,0,0,0.25);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 30px;
+      font-size: 28px;
       cursor: pointer;
-      z-index: 9998;
       border: 2px solid #fff;
       transition: transform 0.15s ease;
+      z-index: 9998;
     }
-    #jac-chat-bolha:hover { transform: scale(1.06); }
-    #jac-chat-bolha .jac-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      background: #ef4444;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      display: none;
-      align-items: center;
-      justify-content: center;
+    #jac-ajuda-bolha:hover, #jac-rastreio-bolha:hover { transform: scale(1.06); }
+
+    #jac-ajuda-bolha {
+      bottom: 25px;
+      background: linear-gradient(145deg, #16a34a, #15803d);
+    }
+    #jac-rastreio-bolha {
+      bottom: 98px;
+      background: linear-gradient(145deg, #f59e0b, #d97706);
+      font-size: 26px;
     }
 
-    #jac-chat-painel {
+    #jac-rastreio-bolha .jac-dica-pulso {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 2px solid #f59e0b;
+      animation: jac-pulso 1.6s ease-out infinite;
+      display: none;
+    }
+    #jac-rastreio-bolha.jac-chamar-atencao .jac-dica-pulso { display: block; }
+    @keyframes jac-pulso {
+      0% { transform: scale(1); opacity: 0.9; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .jac-painel {
       position: fixed;
-      bottom: 96px;
       left: 20px;
       width: 340px;
       max-width: calc(100vw - 32px);
-      height: 480px;
+      height: 460px;
       max-height: calc(100vh - 140px);
       background: #fff;
       border-radius: 18px;
@@ -74,19 +79,24 @@
       z-index: 9999;
       font-family: inherit;
     }
-    #jac-chat-painel.jac-aberto { display: flex; }
+    .jac-painel.jac-aberto { display: flex; }
 
-    #jac-chat-header {
-      background: linear-gradient(120deg, #16a34a, #15803d);
+    #jac-ajuda-painel { bottom: 92px; }
+    #jac-rastreio-painel { bottom: 165px; }
+
+    .jac-painel-header {
       color: #fff;
       padding: 14px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    #jac-chat-header .jac-titulo { font-weight: 700; font-size: 15px; }
-    #jac-chat-header .jac-subtitulo { font-size: 12px; opacity: 0.85; margin-top: 2px; }
-    #jac-chat-fechar, #jac-chat-voltar {
+    #jac-ajuda-painel .jac-painel-header { background: linear-gradient(120deg, #16a34a, #15803d); }
+    #jac-rastreio-painel .jac-painel-header { background: linear-gradient(120deg, #f59e0b, #d97706); }
+
+    .jac-painel-header .jac-titulo { font-weight: 700; font-size: 15px; }
+    .jac-painel-header .jac-subtitulo { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .jac-fechar {
       background: rgba(255,255,255,0.18);
       border: none;
       color: #fff;
@@ -97,7 +107,7 @@
       font-size: 14px;
     }
 
-    #jac-chat-corpo {
+    .jac-corpo {
       flex: 1;
       overflow-y: auto;
       padding: 14px;
@@ -136,12 +146,7 @@
       margin-bottom: 2px;
     }
 
-    .jac-opcoes {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 4px;
-    }
+    .jac-opcoes { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
     .jac-btn-opcao {
       background: #fff;
       border: 1.5px solid #16a34a;
@@ -154,15 +159,17 @@
       text-align: left;
     }
     .jac-btn-opcao:hover { background: #f0fdf4; }
+    #jac-rastreio-painel .jac-btn-opcao { border-color: #d97706; color: #b45309; }
+    #jac-rastreio-painel .jac-btn-opcao:hover { background: #fffbeb; }
 
-    #jac-chat-rodape {
+    .jac-rodape {
       border-top: 1px solid #e5e7eb;
       padding: 10px;
       display: flex;
       gap: 8px;
       background: #fff;
     }
-    #jac-chat-input {
+    .jac-input {
       flex: 1;
       border: 1px solid #d1d5db;
       border-radius: 10px;
@@ -170,9 +177,9 @@
       font-size: 13.5px;
       outline: none;
     }
-    #jac-chat-input:focus { border-color: #16a34a; }
-    #jac-chat-enviar {
-      background: #16a34a;
+    #jac-ajuda-painel .jac-input:focus { border-color: #16a34a; }
+    #jac-rastreio-painel .jac-input:focus { border-color: #d97706; }
+    .jac-enviar {
       border: none;
       color: #fff;
       border-radius: 10px;
@@ -180,12 +187,10 @@
       cursor: pointer;
       font-size: 16px;
     }
+    #jac-ajuda-painel .jac-enviar { background: #16a34a; }
+    #jac-rastreio-painel .jac-enviar { background: #d97706; }
 
-    .jac-selo-avaliacao {
-      align-self: center;
-      margin-top: 8px;
-      text-align: center;
-    }
+    .jac-selo-avaliacao { align-self: center; margin-top: 8px; text-align: center; }
     .jac-btn-avaliar {
       display: inline-block;
       background: #fbbf24;
@@ -197,17 +202,13 @@
       font-size: 13px;
     }
 
-    @media (max-width: 420px) {
-      #jac-chat-painel { left: 16px; right: 16px; width: auto; }
-    }
-
-    #jac-chat-dica-balao {
+    #jac-rastreio-dica-balao {
       position: fixed;
-      bottom: 96px;
-      left: 20px;
+      bottom: 98px;
+      left: 90px;
       max-width: 220px;
       background: #fff;
-      color: #14532d;
+      color: #78350f;
       padding: 12px 14px;
       border-radius: 14px;
       border-bottom-left-radius: 4px;
@@ -230,6 +231,10 @@
       pointer-events: none;
       transition: left 0.9s cubic-bezier(0.3, 0, 0.2, 1), top 0.9s cubic-bezier(0.3, 0, 0.2, 1), transform 0.9s ease, opacity 0.3s ease 0.7s;
     }
+
+    @media (max-width: 420px) {
+      .jac-painel { left: 16px; right: 16px; width: auto; }
+    }
   `;
 
   function injetarEstilos() {
@@ -238,7 +243,7 @@
     document.head.appendChild(tag);
   }
 
-  // ------- HELPERS -------
+  // ------- HELPERS GERAIS -------
   function el(tag, props, ...filhos) {
     const node = document.createElement(tag);
     Object.assign(node, props || {});
@@ -256,143 +261,103 @@
       .replace(/[\u0300-\u036f]/g, "");
   }
 
-  function corpo() {
-    return document.getElementById("jac-chat-corpo");
-  }
-
-  function limparCorpo() {
-    corpo().innerHTML = "";
-  }
-
-  function adicionarMensagemVisual(remetente, texto) {
-    const bolha = el("div", { className: `jac-msg ${remetente}` }, texto);
-    corpo().appendChild(bolha);
-    corpo().scrollTop = corpo().scrollHeight;
-    return bolha;
-  }
-
-  function adicionarBlocoOpcoes(opcoes) {
-    const wrap = el("div", { className: "jac-opcoes" });
-    opcoes.forEach(([label, handler]) => {
-      wrap.appendChild(el("button", { className: "jac-btn-opcao", onclick: handler }, label));
-    });
-    corpo().appendChild(wrap);
-    corpo().scrollTop = corpo().scrollHeight;
-  }
-
-  function adicionarBotaoAvaliacao() {
-    if (!LINK_AVALIACAO_GOOGLE) return;
-    const wrap = el("div", { className: "jac-selo-avaliacao" });
-    wrap.appendChild(
-      el(
-        "a",
-        { className: "jac-btn-avaliar", href: LINK_AVALIACAO_GOOGLE, target: "_blank" },
-        "⭐ Avaliar a loja no Google"
-      )
-    );
-    corpo().appendChild(wrap);
-    corpo().scrollTop = corpo().scrollHeight;
-  }
-
-  function esconderInputPadrao() {
-    document.getElementById("jac-chat-rodape").style.display = "none";
-  }
-  function mostrarInputPadrao(placeholder) {
-    const rodape = document.getElementById("jac-chat-rodape");
-    rodape.style.display = "flex";
-    document.getElementById("jac-chat-input").placeholder = placeholder || "Digite sua mensagem...";
-  }
-
-  // ------- TELAS -------
-  function mostrarMenuPrincipal() {
-    telaAtual = "menu";
-    pararPolling();
-    limparCorpo();
-    esconderInputPadrao();
-    const saudacao = clienteNome ? `Oi, ${clienteNome}! 🐊` : "Oi! 🐊";
-    adicionarMensagemVisual("bot", `${saudacao} Eu sou o assistente da Jacaré Utilidades. Como posso te ajudar hoje?`);
-    adicionarBlocoOpcoes([
-      ["🙋 Ajuda / Dúvida", mostrarTelaAjuda],
-      ["📦 Rastrear meu pedido", mostrarTelaRastreio],
-    ]);
-  }
-
-  function mostrarTelaNome() {
-    telaAtual = "nome";
-    limparCorpo();
-    adicionarMensagemVisual("bot", "Antes de começar, qual é o seu nome?");
-    mostrarInputPadrao("Seu nome");
-
-    window.__jacChatProximoEnvio = async (valor) => {
-      window.__jacChatProximoEnvio = null;
-      clienteNome = valor.trim();
-      localStorage.setItem("jac_cliente_nome", clienteNome);
-      mostrarMenuPrincipal();
-    };
-  }
-
-  function mostrarTelaAjuda() {
-    telaAtual = "ajuda";
-    limparCorpo();
-    adicionarMensagemVisual("bot", "Pode escrever sua dúvida que eu tento te ajudar. Se eu não souber responder, chamo um atendente pra você.");
-    mostrarInputPadrao("Digite sua dúvida...");
-  }
-
-  function mostrarTelaRastreio() {
-    telaAtual = "rastreio";
-    limparCorpo();
-    esconderInputPadrao();
-    adicionarMensagemVisual("bot", "Me manda o código do pedido (ex: JAC-1234) ou o telefone usado na compra.");
-    mostrarInputPadrao("Código do pedido ou telefone");
-  }
-
-  async function processarRastreio(valor) {
-    adicionarMensagemVisual("cliente", valor);
-
-    const valorLimpo = valor.trim();
-    const somenteDigitos = valorLimpo.replace(/\D/g, "");
-
-    let query = supabaseClient.from("pedidos").select("code,status,endereco,total,created_at").order("created_at", { ascending: false }).limit(1);
-
-    if (somenteDigitos.length >= 10) {
-      query = query.ilike("telefone", `%${somenteDigitos}%`);
-    } else {
-      query = query.ilike("code", `%${valorLimpo}%`);
+  // ------- HELPERS POR PAINEL (Ajuda / Rastreio) -------
+  function criarPainelUI(prefixo) {
+    function corpo() {
+      return document.getElementById(`jac-${prefixo}-corpo`);
+    }
+    function limparCorpo() {
+      corpo().innerHTML = "";
+    }
+    function adicionarMensagemVisual(remetente, texto) {
+      const bolha = el("div", { className: `jac-msg ${remetente}` }, texto);
+      corpo().appendChild(bolha);
+      corpo().scrollTop = corpo().scrollHeight;
+      return bolha;
+    }
+    function adicionarBlocoOpcoes(opcoes) {
+      const wrap = el("div", { className: "jac-opcoes" });
+      opcoes.forEach(([label, handler]) => {
+        wrap.appendChild(el("button", { className: "jac-btn-opcao", onclick: handler }, label));
+      });
+      corpo().appendChild(wrap);
+      corpo().scrollTop = corpo().scrollHeight;
+    }
+    function adicionarBotaoAvaliacao() {
+      if (!LINK_AVALIACAO_GOOGLE) return;
+      const wrap = el("div", { className: "jac-selo-avaliacao" });
+      wrap.appendChild(
+        el("a", { className: "jac-btn-avaliar", href: LINK_AVALIACAO_GOOGLE, target: "_blank" }, "⭐ Avaliar a loja no Google")
+      );
+      corpo().appendChild(wrap);
+      corpo().scrollTop = corpo().scrollHeight;
+    }
+    function esconderInput() {
+      document.getElementById(`jac-${prefixo}-rodape`).style.display = "none";
+    }
+    function mostrarInput(placeholder) {
+      const rodape = document.getElementById(`jac-${prefixo}-rodape`);
+      rodape.style.display = "flex";
+      document.getElementById(`jac-${prefixo}-input`).placeholder = placeholder || "Digite sua mensagem...";
     }
 
-    const { data, error } = await query;
+    return { corpo, limparCorpo, adicionarMensagemVisual, adicionarBlocoOpcoes, adicionarBotaoAvaliacao, esconderInput, mostrarInput };
+  }
 
-    if (error || !data || data.length === 0) {
-      adicionarMensagemVisual("bot", "Não encontrei nenhum pedido com esse código/telefone. Confere se digitou certinho, ou fala com um atendente.");
-      adicionarBlocoOpcoes([
-        ["🙋 Falar com atendente", () => iniciarEscalonamento("Pedido não encontrado no rastreio: " + valor)],
-        ["🔁 Tentar de novo", mostrarTelaRastreio],
-        ["⬅️ Voltar ao menu", mostrarMenuPrincipal],
-      ]);
+  const ajuda = criarPainelUI("ajuda");
+  const rastreio = criarPainelUI("rastreio");
+
+  // ============================================================
+  // PAINEL DE AJUDA
+  // ============================================================
+
+  function abrirFluxoAjuda() {
+    const conversaIdSalva = localStorage.getItem("jac_conversa_id");
+
+    if (conversaIdSalva) {
+      tentarRetomarConversa(conversaIdSalva).then((retomou) => {
+        if (!retomou) mostrarInicioAjuda();
+      });
       return;
     }
 
-    const pedido = data[0];
-    const statusTexto = {
-      PENDENTE: "🟡 Aguardando pagamento",
-      PRONTO: "🟢 Em preparação na loja",
-      ENTREGA: "🚚 Saiu para entrega",
-      FINALIZADO: "✅ Finalizado",
-    }[pedido.status] || pedido.status;
-
-    adicionarMensagemVisual(
-      "bot",
-      `Pedido ${pedido.code}\nStatus: ${statusTexto}\nTotal: R$ ${Number(pedido.total || 0).toFixed(2).replace(".", ",")}`
-    );
-
-    adicionarBlocoOpcoes([
-      ["📦 Rastrear outro pedido", mostrarTelaRastreio],
-      ["🙋 Preciso de ajuda", mostrarTelaAjuda],
-      ["✅ Finalizar", finalizarAtendimento],
-    ]);
+    mostrarInicioAjuda();
   }
 
-  // ------- FAQ -------
+  function mostrarInicioAjuda() {
+    telaAjudaAtual = "pergunta";
+    pararPolling();
+    ajuda.limparCorpo();
+
+    if (!clienteNome) {
+      pedirNomeCliente();
+      return;
+    }
+
+    perguntarDuvida();
+  }
+
+  function pedirNomeCliente() {
+    telaAjudaAtual = "nome";
+    ajuda.limparCorpo();
+    ajuda.adicionarMensagemVisual("bot", "Oi! 🐊 Antes de começar, qual é o seu nome?");
+    ajuda.mostrarInput("Seu nome");
+
+    window.__jacAjudaProximoEnvio = async (valor) => {
+      window.__jacAjudaProximoEnvio = null;
+      clienteNome = valor.trim();
+      localStorage.setItem("jac_cliente_nome", clienteNome);
+      perguntarDuvida();
+    };
+  }
+
+  function perguntarDuvida() {
+    telaAjudaAtual = "pergunta";
+    ajuda.limparCorpo();
+    ajuda.adicionarMensagemVisual("bot", `Oi, ${clienteNome}! 🐊 Me conta sua dúvida que eu tento te ajudar. Se eu não souber responder, chamo um atendente.`);
+    ajuda.mostrarInput("Digite sua dúvida...");
+  }
+
   async function tentarResponderComFaq(pergunta) {
     const { data, error } = await supabaseClient
       .from("perguntas_frequentes")
@@ -412,14 +377,14 @@
     return null;
   }
 
-  async function processarAjuda(pergunta) {
-    adicionarMensagemVisual("cliente", pergunta);
+  async function processarDuvida(pergunta) {
+    ajuda.adicionarMensagemVisual("cliente", pergunta);
 
     const resposta = await tentarResponderComFaq(pergunta);
 
     if (resposta) {
-      adicionarMensagemVisual("bot", resposta);
-      adicionarBlocoOpcoes([
+      ajuda.adicionarMensagemVisual("bot", resposta);
+      ajuda.adicionarBlocoOpcoes([
         ["✅ Isso resolveu, obrigado!", finalizarAtendimento],
         ["🙋 Não, quero falar com atendente", () => iniciarEscalonamento(pergunta)],
       ]);
@@ -429,7 +394,6 @@
     await iniciarEscalonamento(pergunta);
   }
 
-  // ------- ESCALONAMENTO PRO FUNCIONÁRIO -------
   async function garantirConversa(telefone) {
     if (conversaAtual) return conversaAtual;
 
@@ -452,8 +416,8 @@
   }
 
   async function iniciarEscalonamento(mensagemInicial) {
-    telaAtual = "conversa-humana";
-    const telefone = obterTelefoneCliente();
+    telaAjudaAtual = "conversa-humana";
+    const telefone = clienteTelefone;
 
     if (!telefone) {
       pedirTelefoneParaEscalonamento(mensagemInicial);
@@ -464,12 +428,12 @@
   }
 
   function pedirTelefoneParaEscalonamento(mensagemInicial) {
-    limparCorpo();
-    adicionarMensagemVisual("bot", "Antes de chamar um atendente, me confirma seu WhatsApp/telefone com DDD:");
-    mostrarInputPadrao("(31) 99999-9999");
+    ajuda.limparCorpo();
+    ajuda.adicionarMensagemVisual("bot", "Antes de chamar um atendente, me confirma seu WhatsApp/telefone com DDD:");
+    ajuda.mostrarInput("(31) 99999-9999");
 
-    window.__jacChatProximoEnvio = async (valor) => {
-      window.__jacChatProximoEnvio = null;
+    window.__jacAjudaProximoEnvio = async (valor) => {
+      window.__jacAjudaProximoEnvio = null;
       await abrirEscalonamentoComTelefone(valor.replace(/\D/g, ""), mensagemInicial);
     };
   }
@@ -477,44 +441,32 @@
   async function abrirEscalonamentoComTelefone(telefone, mensagemInicial) {
     const conversa = await garantirConversa(telefone);
     if (!conversa) {
-      adicionarMensagemVisual("bot", "Deu um erro aqui pra te conectar com o atendente. Tenta de novo em instantes.");
+      ajuda.adicionarMensagemVisual("bot", "Deu um erro aqui pra te conectar com o atendente. Tenta de novo em instantes.");
       return;
     }
 
     await supabaseClient.from("conversas").update({ status: "aguardando_atendente" }).eq("id", conversa.id);
 
     if (mensagemInicial) {
-      await supabaseClient.from("mensagens").insert([
-        { conversa_id: conversa.id, remetente: "cliente", texto: mensagemInicial },
-      ]);
+      await supabaseClient.from("mensagens").insert([{ conversa_id: conversa.id, remetente: "cliente", texto: mensagemInicial }]);
     }
 
-    limparCorpo();
-    adicionarMensagemVisual("bot", "Prontinho! Um atendente vai te responder aqui mesmo, o mais rápido possível. Pode continuar escrevendo se quiser.");
-    mostrarInputPadrao("Escreva sua mensagem...");
+    ajuda.limparCorpo();
+    ajuda.adicionarMensagemVisual("bot", "Prontinho! Um atendente vai te responder aqui mesmo, o mais rápido possível. Pode continuar escrevendo se quiser.");
+    ajuda.mostrarInput("Escreva sua mensagem...");
     iniciarPolling();
   }
 
-  function obterTelefoneCliente() {
-    return clienteTelefone || (conversaAtual ? conversaAtual.telefone : null);
-  }
-
   async function enviarMensagemHumana(texto) {
-    adicionarMensagemVisual("cliente", texto);
-
+    ajuda.adicionarMensagemVisual("cliente", texto);
     if (!conversaAtual) return;
-
-    await supabaseClient.from("mensagens").insert([
-      { conversa_id: conversaAtual.id, remetente: "cliente", texto },
-    ]);
+    await supabaseClient.from("mensagens").insert([{ conversa_id: conversaAtual.id, remetente: "cliente", texto }]);
   }
 
-  // ------- POLLING (aguardando resposta do funcionário) -------
   function iniciarPolling() {
     pararPolling();
     pollingId = setInterval(buscarNovasMensagens, POLL_INTERVAL_MS);
   }
-
   function pararPolling() {
     if (pollingId) {
       clearInterval(pollingId);
@@ -522,142 +474,28 @@
     }
   }
 
+  let ultimaMensagemId = null;
   async function buscarNovasMensagens() {
     if (!conversaAtual) return;
 
-    let query = supabaseClient
+    const { data, error } = await supabaseClient
       .from("mensagens")
       .select("*")
       .eq("conversa_id", conversaAtual.id)
       .eq("remetente", "funcionario")
       .order("created_at", { ascending: true });
 
-    const { data, error } = await query;
     if (error || !data) return;
 
-    const novas = ultimaMensagemId
-      ? data.filter((m) => new Date(m.created_at) > new Date(ultimaMensagemId))
-      : data;
-
+    const novas = ultimaMensagemId ? data.filter((m) => new Date(m.created_at) > new Date(ultimaMensagemId)) : data;
     novas.forEach((m) => {
-      adicionarMensagemVisual("funcionario", m.texto);
+      ajuda.adicionarMensagemVisual("funcionario", m.texto);
       ultimaMensagemId = m.created_at;
     });
   }
 
-  // ------- FINALIZAÇÃO -------
-  async function finalizarAtendimento() {
-    if (conversaAtual) {
-      await supabaseClient.from("conversas").update({ status: "encerrada" }).eq("id", conversaAtual.id);
-    }
-    localStorage.removeItem("jac_conversa_id");
-    pararPolling();
-    limparCorpo();
-    adicionarMensagemVisual("bot", "Obrigado por falar com a gente! Se puder, deixa sua avaliação — isso ajuda muito a loja. 💚");
-    adicionarBotaoAvaliacao();
-    adicionarBlocoOpcoes([["⬅️ Voltar ao menu", () => { conversaAtual = null; mostrarMenuPrincipal(); }]]);
-  }
-
-  // ------- ENVIO PELO CAMPO DE TEXTO -------
-  async function tratarEnvio() {
-    const input = document.getElementById("jac-chat-input");
-    const valor = input.value.trim();
-    if (!valor) return;
-    input.value = "";
-
-    if (window.__jacChatProximoEnvio) {
-      const handler = window.__jacChatProximoEnvio;
-      window.__jacChatProximoEnvio = null;
-      await handler(valor);
-      return;
-    }
-
-    if (telaAtual === "ajuda") {
-      await processarAjuda(valor);
-    } else if (telaAtual === "rastreio") {
-      await processarRastreio(valor);
-    } else if (telaAtual === "conversa-humana") {
-      await enviarMensagemHumana(valor);
-    }
-  }
-
-  // ------- MONTAGEM DO WIDGET -------
-  function montarWidget() {
-    const bolha = el(
-      "button",
-      { id: "jac-chat-bolha", onclick: alternarPainel, "aria-label": "Falar com a Jacaré Utilidades" },
-      "🐊"
-    );
-
-    const header = el(
-      "div",
-      { id: "jac-chat-header" },
-      el("button", { id: "jac-chat-voltar", onclick: mostrarMenuPrincipal, title: "Voltar ao menu" }, "⬅"),
-      el(
-        "div",
-        {},
-        el("div", { className: "jac-titulo" }, "Jacaré Utilidades"),
-        el("div", { className: "jac-subtitulo" }, "Fale com a gente")
-      ),
-      el("button", { id: "jac-chat-fechar", onclick: alternarPainel, title: "Fechar" }, "✕")
-    );
-
-    const painel = el(
-      "div",
-      { id: "jac-chat-painel" },
-      header,
-      el("div", { id: "jac-chat-corpo" }),
-      el(
-        "div",
-        { id: "jac-chat-rodape" },
-        el("input", {
-          id: "jac-chat-input",
-          type: "text",
-          placeholder: "Digite sua mensagem...",
-          onkeydown: (e) => {
-            if (e.key === "Enter") tratarEnvio();
-          },
-        }),
-        el("button", { id: "jac-chat-enviar", onclick: tratarEnvio }, "➤")
-      )
-    );
-
-    document.body.appendChild(bolha);
-    document.body.appendChild(painel);
-  }
-
-  function alternarPainel() {
-    const painel = document.getElementById("jac-chat-painel");
-    const abrindo = !painel.classList.contains("jac-aberto");
-    painel.classList.toggle("jac-aberto");
-
-    if (abrindo && corpo().children.length === 0) {
-      iniciarFluxoChat();
-    }
-  }
-
-  async function iniciarFluxoChat() {
-    const conversaIdSalva = localStorage.getItem("jac_conversa_id");
-
-    if (conversaIdSalva) {
-      const retomou = await tentarRetomarConversa(conversaIdSalva);
-      if (retomou) return;
-    }
-
-    if (!clienteNome) {
-      mostrarTelaNome();
-      return;
-    }
-
-    mostrarMenuPrincipal();
-  }
-
   async function tentarRetomarConversa(conversaId) {
-    const { data: conversa, error } = await supabaseClient
-      .from("conversas")
-      .select("*")
-      .eq("id", conversaId)
-      .single();
+    const { data: conversa, error } = await supabaseClient.from("conversas").select("*").eq("id", conversaId).single();
 
     if (error || !conversa || conversa.status === "encerrada") {
       localStorage.removeItem("jac_conversa_id");
@@ -666,7 +504,7 @@
 
     conversaAtual = conversa;
     clienteTelefone = conversa.telefone;
-    telaAtual = "conversa-humana";
+    telaAjudaAtual = "conversa-humana";
 
     const { data: mensagens } = await supabaseClient
       .from("mensagens")
@@ -674,26 +512,119 @@
       .eq("conversa_id", conversaId)
       .order("created_at", { ascending: true });
 
-    limparCorpo();
-    adicionarMensagemVisual("bot", "Você já tem uma conversa em andamento com a gente. Aqui está o histórico:");
+    ajuda.limparCorpo();
+    ajuda.adicionarMensagemVisual("bot", "Você já tem uma conversa em andamento com a gente. Aqui está o histórico:");
     (mensagens || []).forEach((m) => {
-      adicionarMensagemVisual(m.remetente, m.texto);
+      ajuda.adicionarMensagemVisual(m.remetente, m.texto);
       ultimaMensagemId = m.created_at;
     });
-    mostrarInputPadrao("Escreva sua mensagem...");
+    ajuda.mostrarInput("Escreva sua mensagem...");
     iniciarPolling();
     return true;
   }
 
-  // ------- ANIMAÇÃO: "seu pedido chegou, acompanhe aqui" -------
+  async function finalizarAtendimento() {
+    if (conversaAtual) {
+      await supabaseClient.from("conversas").update({ status: "encerrada" }).eq("id", conversaAtual.id);
+    }
+    localStorage.removeItem("jac_conversa_id");
+    conversaAtual = null;
+    pararPolling();
+    ajuda.limparCorpo();
+    ajuda.adicionarMensagemVisual("bot", "Obrigado por falar com a gente! Se puder, deixa sua avaliação — isso ajuda muito a loja. 💚");
+    ajuda.adicionarBotaoAvaliacao();
+    ajuda.adicionarBlocoOpcoes([["🙋 Nova dúvida", perguntarDuvida]]);
+  }
+
+  async function tratarEnvioAjuda() {
+    const input = document.getElementById("jac-ajuda-input");
+    const valor = input.value.trim();
+    if (!valor) return;
+    input.value = "";
+
+    if (window.__jacAjudaProximoEnvio) {
+      const handler = window.__jacAjudaProximoEnvio;
+      window.__jacAjudaProximoEnvio = null;
+      await handler(valor);
+      return;
+    }
+
+    if (telaAjudaAtual === "pergunta") {
+      await processarDuvida(valor);
+    } else if (telaAjudaAtual === "conversa-humana") {
+      await enviarMensagemHumana(valor);
+    }
+  }
+
+  // ============================================================
+  // PAINEL DE RASTREIO (100% separado da Ajuda)
+  // ============================================================
+
+  function abrirFluxoRastreio() {
+    tirarChamadaAtencaoRastreio();
+    rastreio.limparCorpo();
+    rastreio.adicionarMensagemVisual("bot", "Me manda o código do pedido (ex: JAC-1234) ou o telefone usado na compra.");
+    rastreio.mostrarInput("Código do pedido ou telefone");
+  }
+
+  async function processarRastreio(valor) {
+    rastreio.adicionarMensagemVisual("cliente", valor);
+
+    const valorLimpo = valor.trim();
+    const somenteDigitos = valorLimpo.replace(/\D/g, "");
+
+    let query = supabaseClient
+      .from("pedidos")
+      .select("code,status,endereco,total,created_at")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    query = somenteDigitos.length >= 10 ? query.ilike("telefone", `%${somenteDigitos}%`) : query.ilike("code", `%${valorLimpo}%`);
+
+    const { data, error } = await query;
+
+    if (error || !data || data.length === 0) {
+      rastreio.adicionarMensagemVisual("bot", "Não encontrei nenhum pedido com esse código/telefone. Confere se digitou certinho.\n\nSe precisar de ajuda, clique no balão verde 🐊 no canto da tela.");
+      rastreio.adicionarBlocoOpcoes([["🔁 Tentar de novo", abrirFluxoRastreio]]);
+      return;
+    }
+
+    const pedido = data[0];
+    const statusTexto = {
+      PENDENTE: "🟡 Aguardando pagamento",
+      PRONTO: "🟢 Em preparação na loja",
+      ENTREGA: "🚚 Saiu para entrega",
+      FINALIZADO: "✅ Finalizado",
+    }[pedido.status] || pedido.status;
+
+    rastreio.adicionarMensagemVisual(
+      "bot",
+      `Pedido ${pedido.code}\nStatus: ${statusTexto}\nTotal: R$ ${Number(pedido.total || 0).toFixed(2).replace(".", ",")}`
+    );
+
+    rastreio.adicionarBlocoOpcoes([["📦 Rastrear outro pedido", abrirFluxoRastreio]]);
+    rastreio.adicionarBotaoAvaliacao();
+  }
+
+  async function tratarEnvioRastreio() {
+    const input = document.getElementById("jac-rastreio-input");
+    const valor = input.value.trim();
+    if (!valor) return;
+    input.value = "";
+    await processarRastreio(valor);
+  }
+
+  // ============================================================
+  // ANIMAÇÃO PÓS-PAGAMENTO: aponta para o balão de RASTREIO
+  // ============================================================
+
   function animarCaixaAteChat() {
-    const bolha = document.getElementById("jac-chat-bolha");
+    const bolha = document.getElementById("jac-rastreio-bolha");
     if (!bolha) return;
 
     const destino = bolha.getBoundingClientRect();
     const caixa = el("div", { className: "jac-caixa-voadora" }, "📦");
 
-    // ponto de partida: um pouco acima do centro da tela
     caixa.style.left = `${window.innerWidth / 2 - 15}px`;
     caixa.style.top = `${window.innerHeight / 2 - 120}px`;
     document.body.appendChild(caixa);
@@ -710,34 +641,36 @@
     setTimeout(() => caixa.remove(), 1100);
   }
 
+  function chamarAtencaoRastreio() {
+    document.getElementById("jac-rastreio-bolha")?.classList.add("jac-chamar-atencao");
+  }
+  function tirarChamadaAtencaoRastreio() {
+    document.getElementById("jac-rastreio-bolha")?.classList.remove("jac-chamar-atencao");
+  }
+
   function mostrarDicaRastreio(codigoPedido) {
-    const existente = document.getElementById("jac-chat-dica-balao");
+    const existente = document.getElementById("jac-rastreio-dica-balao");
     if (existente) existente.remove();
+
+    chamarAtencaoRastreio();
 
     const balao = el(
       "div",
       {
-        id: "jac-chat-dica-balao",
+        id: "jac-rastreio-dica-balao",
         onclick: () => {
           balao.remove();
-          abrirPainelSeFechado();
-          mostrarTelaRastreio();
-          const input = document.getElementById("jac-chat-input");
-          if (input) input.value = codigoPedido || "";
+          abrirPainel("rastreio");
+          rastreio.limparCorpo();
+          rastreio.mostrarInput("Código do pedido ou telefone");
+          processarRastreio(codigoPedido);
         },
       },
-      `📦 Pedido ${codigoPedido ? codigoPedido + " " : ""}registrado! Clique aqui pra acompanhar quando quiser.`
+      `📦 Pedido ${codigoPedido ? codigoPedido + " " : ""}registrado! Guarde esse código — clique aqui pra acompanhar quando quiser.`
     );
 
     document.body.appendChild(balao);
-    setTimeout(() => balao.remove(), 9000);
-  }
-
-  function abrirPainelSeFechado() {
-    const painel = document.getElementById("jac-chat-painel");
-    if (!painel.classList.contains("jac-aberto")) {
-      painel.classList.add("jac-aberto");
-    }
+    setTimeout(() => balao.remove(), 12000);
   }
 
   function verificarRetornoDePedido() {
@@ -745,7 +678,6 @@
     const pedidoRecente = params.get("pedido_recente");
     if (!pedidoRecente) return;
 
-    // limpa o parâmetro da URL sem recarregar a página
     params.delete("pedido_recente");
     const novaUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", novaUrl);
@@ -756,6 +688,89 @@
     }, 500);
   }
 
+  // ============================================================
+  // MONTAGEM DOS DOIS WIDGETS
+  // ============================================================
+
+  function montarPainel(prefixo, tituloEl, subtitulo, onEnviar) {
+    const header = el(
+      "div",
+      { className: "jac-painel-header" },
+      el("div", {}, el("div", { className: "jac-titulo" }, tituloEl), el("div", { className: "jac-subtitulo" }, subtitulo)),
+      el("button", { className: "jac-fechar", onclick: () => fecharPainel(prefixo), title: "Fechar" }, "✕")
+    );
+
+    const painel = el(
+      "div",
+      { id: `jac-${prefixo}-painel`, className: "jac-painel" },
+      header,
+      el("div", { id: `jac-${prefixo}-corpo`, className: "jac-corpo" }),
+      el(
+        "div",
+        { id: `jac-${prefixo}-rodape`, className: "jac-rodape" },
+        el("input", {
+          id: `jac-${prefixo}-input`,
+          className: "jac-input",
+          type: "text",
+          placeholder: "Digite sua mensagem...",
+          onkeydown: (e) => {
+            if (e.key === "Enter") onEnviar();
+          },
+        }),
+        el("button", { className: "jac-enviar", onclick: onEnviar }, "➤")
+      )
+    );
+
+    document.body.appendChild(painel);
+  }
+
+  function montarWidgets() {
+    const bolhaAjuda = el(
+      "button",
+      { id: "jac-ajuda-bolha", onclick: () => alternarPainel("ajuda"), "aria-label": "Falar com a Jacaré Utilidades" },
+      "🐊"
+    );
+
+    const bolhaRastreio = el(
+      "button",
+      { id: "jac-rastreio-bolha", onclick: () => alternarPainel("rastreio"), "aria-label": "Rastrear meu pedido" },
+      "📦",
+      el("span", { className: "jac-dica-pulso" })
+    );
+
+    document.body.appendChild(bolhaAjuda);
+    document.body.appendChild(bolhaRastreio);
+
+    montarPainel("ajuda", "Jacaré Utilidades", "Fale com a gente", tratarEnvioAjuda);
+    montarPainel("rastreio", "Rastrear pedido", "Acompanhe seu pedido", tratarEnvioRastreio);
+  }
+
+  function abrirPainel(prefixo) {
+    fecharPainel(prefixo === "ajuda" ? "rastreio" : "ajuda");
+    document.getElementById(`jac-${prefixo}-painel`).classList.add("jac-aberto");
+  }
+  function fecharPainel(prefixo) {
+    document.getElementById(`jac-${prefixo}-painel`)?.classList.remove("jac-aberto");
+  }
+
+  function alternarPainel(prefixo) {
+    const painel = document.getElementById(`jac-${prefixo}-painel`);
+    const abrindo = !painel.classList.contains("jac-aberto");
+
+    if (!abrindo) {
+      fecharPainel(prefixo);
+      return;
+    }
+
+    abrirPainel(prefixo);
+
+    const corpoAtual = prefixo === "ajuda" ? ajuda.corpo() : rastreio.corpo();
+    if (corpoAtual.children.length === 0) {
+      if (prefixo === "ajuda") abrirFluxoAjuda();
+      else abrirFluxoRastreio();
+    }
+  }
+
   // ------- INICIALIZAÇÃO -------
   document.addEventListener("DOMContentLoaded", () => {
     if (typeof supabaseClient === "undefined") {
@@ -763,7 +778,7 @@
       return;
     }
     injetarEstilos();
-    montarWidget();
+    montarWidgets();
     verificarRetornoDePedido();
   });
 })();
