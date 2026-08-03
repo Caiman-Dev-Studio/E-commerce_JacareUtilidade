@@ -491,7 +491,7 @@ function formatarMoeda(valor){
 function formatarHora(iso){
   if(!iso) return ""
   const d = new Date(iso)
-  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone: 'America/Sao_Paulo' })
 }
 
 function formatarTelefoneExibicao(telefone){
@@ -783,7 +783,7 @@ let ultimaContagemAguardando = 0
 function formatarHoraChat(iso){
   if(!iso) return ""
   const d = new Date(iso)
-  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+  return d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone: 'America/Sao_Paulo' })
 }
 
 function formatarTelefoneChat(telefone){
