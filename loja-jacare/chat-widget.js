@@ -621,10 +621,56 @@
     if (!code) return;
     const mapa = lerPedidosAcompanhados();
     if (!mapa[code]) {
-      mapa[code] = { statusVisto: statusInicial || null, statusAtual: statusInicial || null };
+      mapa[code] = { statusVisto: statusInicial || null, statusAtual: statusInicial || null, criadoEm: Date.now() };
       salvarPedidosAcompanhados(mapa);
     }
     inscreverRealtimePedido(code);
+  }
+
+  // Encerra o canal Realtime de um pedido (sem apagar o registro do localStorage).
+  function desinscreverRealtimePedido(code) {
+    const canal = canaisRealtimeAtivos[code];
+    if (canal) {
+      supabaseClient.removeChannel(canal);
+      delete canaisRealtimeAtivos[code];
+    }
+  }
+
+  // Apaga totalmente o acompanhamento de um pedido: localStorage + canal Realtime.
+  // Usado quando o pedido está FINALIZADO e o cliente já foi avisado — não faz
+  // sentido continuar guardando isso, senão vira lixo/estado velho no navegador
+  // e pode confundir uma busca ou conversa futura do mesmo cliente.
+  function removerAcompanhamento(code) {
+    const mapa = lerPedidosAcompanhados();
+    if (mapa[code]) {
+      delete mapa[code];
+      salvarPedidosAcompanhados(mapa);
+    }
+    desinscreverRealtimePedido(code);
+    if (pedidoExibidoAtualmente === code) pedidoExibidoAtualmente = null;
+    atualizarBadgeContagem();
+  }
+
+  // Limpeza de segurança: se um pedido ficou FINALIZADO mas o cliente nunca
+  // voltou pra ver (fechou a aba, etc.), não deixa isso acumular pra sempre —
+  // apaga depois de alguns dias mesmo sem ter sido visto.
+  const DIAS_PARA_LIMPAR_FINALIZADOS_NAO_VISTOS = 3;
+  function limparAcompanhamentosAntigos() {
+    const mapa = lerPedidosAcompanhados();
+    const agora = Date.now();
+    let mudou = false;
+
+    Object.entries(mapa).forEach(([code, registro]) => {
+      const passouPrazo =
+        registro.criadoEm && agora - registro.criadoEm > DIAS_PARA_LIMPAR_FINALIZADOS_NAO_VISTOS * 24 * 60 * 60 * 1000;
+      if (registro.statusAtual === "FINALIZADO" && passouPrazo) {
+        delete mapa[code];
+        desinscreverRealtimePedido(code);
+        mudou = true;
+      }
+    });
+
+    if (mudou) salvarPedidosAcompanhados(mapa);
   }
 
   function atualizarBadgeContagem() {
@@ -657,6 +703,12 @@
     registro.statusAtual = pedido.status;
     salvarPedidosAcompanhados(mapa);
     atualizarBadgeContagem();
+
+    if (pedido.status === "FINALIZADO") {
+      // Pedido concluído — não vai mudar mais, não precisa continuar escutando.
+      // O registro em si só é apagado depois que o cliente vir a mensagem final (em exibirStatusPedido).
+      desinscreverRealtimePedido(pedido.code);
+    }
 
     if (statusMudou && pedidoExibidoAtualmente === pedido.code) {
       exibirStatusPedido(pedido, { statusAnterior: registro.statusVisto });
@@ -716,12 +768,18 @@
     rastreio.adicionarBlocoOpcoes([["📦 Rastrear outro pedido", abrirFluxoRastreio]]);
     rastreio.adicionarBotaoAvaliacao();
 
-    registrarPedidoParaAcompanhar(pedido.code, pedido.status);
-    const mapaAtualizado = lerPedidosAcompanhados();
-    mapaAtualizado[pedido.code].statusVisto = pedido.status;
-    mapaAtualizado[pedido.code].statusAtual = pedido.status;
-    salvarPedidosAcompanhados(mapaAtualizado);
-    atualizarBadgeContagem();
+    if (pedido.status === "FINALIZADO") {
+      // O cliente acabou de ver que o pedido foi entregue/retirado — não faz sentido
+      // continuar guardando isso no navegador dele. Apaga tudo (localStorage + Realtime).
+      removerAcompanhamento(pedido.code);
+    } else {
+      registrarPedidoParaAcompanhar(pedido.code, pedido.status);
+      const mapaAtualizado = lerPedidosAcompanhados();
+      mapaAtualizado[pedido.code].statusVisto = pedido.status;
+      mapaAtualizado[pedido.code].statusAtual = pedido.status;
+      salvarPedidosAcompanhados(mapaAtualizado);
+      atualizarBadgeContagem();
+    }
   }
 
   // ============================================================
@@ -729,6 +787,7 @@
   // ============================================================
 
   function abrirFluxoRastreio() {
+    pedidoExibidoAtualmente = null; // evita que uma atualização em tempo real do pedido anterior reapareça enquanto o cliente digita outro código
     tirarChamadaAtencaoRastreio();
     rastreio.limparCorpo();
     rastreio.adicionarMensagemVisual("bot", "Me manda o código do pedido (ex: JAC-1234) ou o telefone usado na compra.");
@@ -939,6 +998,10 @@
     injetarEstilos();
     montarWidgets();
     verificarRetornoDePedido();
+
+    // Limpa acompanhamentos velhos (pedidos já finalizados há dias e nunca vistos)
+    // antes de decidir quais canais Realtime reabrir.
+    limparAcompanhamentosAntigos();
 
     // Re-inscreve Realtime pros pedidos que o cliente já vinha acompanhando
     // (de visitas anteriores) e confere se algo mudou enquanto ele estava fora.
