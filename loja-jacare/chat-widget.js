@@ -19,6 +19,19 @@
   let clienteNome = localStorage.getItem("jac_cliente_nome") || null;
   let clienteTelefone = localStorage.getItem("jac_cliente_telefone") || null;
 
+  // ------- ACOMPANHAMENTO DE PEDIDOS (notificação + tempo real) -------
+  const CHAVE_PEDIDOS_ACOMPANHADOS = "jac_pedidos_acompanhados";
+  const VERIFICACAO_PERIODICA_MS = 45000; // rede de segurança caso o Realtime caia
+  let pedidoExibidoAtualmente = null; // código do pedido aberto no painel agora
+  const canaisRealtimeAtivos = {}; // { [code]: canalSupabase }
+
+  const STATUS_TEXTO = {
+    PENDENTE: "🟡 Aguardando pagamento",
+    PRONTO: "🟢 Em preparação na loja",
+    ENTREGA: "🚚 Saiu para entrega",
+    FINALIZADO: "✅ Finalizado",
+  };
+
   // ------- ESTILOS -------
   const estilos = `
     #jac-ajuda-bolha, #jac-rastreio-bolha {
@@ -61,6 +74,30 @@
     @keyframes jac-pulso {
       0% { transform: scale(1); opacity: 0.9; }
       100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .jac-badge-contagem {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #dc2626;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      animation: jac-badge-entrada 0.25s ease-out;
+    }
+    @keyframes jac-badge-entrada {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
     }
 
     .jac-painel {
@@ -563,6 +600,131 @@
   }
 
   // ============================================================
+  // ACOMPANHAMENTO DE PEDIDOS — notificação + atualização em tempo real
+  // ============================================================
+
+  function lerPedidosAcompanhados() {
+    try {
+      return JSON.parse(localStorage.getItem(CHAVE_PEDIDOS_ACOMPANHADOS) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function salvarPedidosAcompanhados(mapa) {
+    localStorage.setItem(CHAVE_PEDIDOS_ACOMPANHADOS, JSON.stringify(mapa));
+  }
+
+  // Começa a acompanhar um pedido: guarda no localStorage e abre um canal Realtime pra ele.
+  // statusInicial é o status que o cliente "já viu" até agora (ex: PENDENTE ao sair do checkout).
+  function registrarPedidoParaAcompanhar(code, statusInicial) {
+    if (!code) return;
+    const mapa = lerPedidosAcompanhados();
+    if (!mapa[code]) {
+      mapa[code] = { statusVisto: statusInicial || null, statusAtual: statusInicial || null };
+      salvarPedidosAcompanhados(mapa);
+    }
+    inscreverRealtimePedido(code);
+  }
+
+  function atualizarBadgeContagem() {
+    const mapa = lerPedidosAcompanhados();
+    const naoVistos = Object.values(mapa).filter((p) => p.statusAtual && p.statusAtual !== p.statusVisto).length;
+
+    const bolha = document.getElementById("jac-rastreio-bolha");
+    if (!bolha) return;
+
+    let badge = document.getElementById("jac-rastreio-badge");
+    if (naoVistos > 0) {
+      if (!badge) {
+        badge = el("span", { id: "jac-rastreio-badge", className: "jac-badge-contagem" });
+        bolha.appendChild(badge);
+      }
+      badge.textContent = String(naoVistos);
+    } else if (badge) {
+      badge.remove();
+    }
+  }
+
+  // Chamado sempre que um status novo chega (via Realtime ou via checagem periódica).
+  // Atualiza o badge e, se o cliente estiver com o painel aberto olhando ESSE pedido, atualiza a tela na hora.
+  function aplicarNovoStatus(pedido) {
+    const mapa = lerPedidosAcompanhados();
+    const registro = mapa[pedido.code];
+    if (!registro) return; // não é um pedido que estamos acompanhando
+
+    const statusMudou = registro.statusAtual !== pedido.status;
+    registro.statusAtual = pedido.status;
+    salvarPedidosAcompanhados(mapa);
+    atualizarBadgeContagem();
+
+    if (statusMudou && pedidoExibidoAtualmente === pedido.code) {
+      exibirStatusPedido(pedido, { statusAnterior: registro.statusVisto });
+    }
+  }
+
+  function inscreverRealtimePedido(code) {
+    if (!code || canaisRealtimeAtivos[code]) return;
+
+    const canal = supabaseClient
+      .channel(`jac-pedido-${code}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "pedidos", filter: `code=eq.${code}` },
+        (payload) => aplicarNovoStatus(payload.new)
+      )
+      .subscribe();
+
+    canaisRealtimeAtivos[code] = canal;
+  }
+
+  // Rede de segurança: reconsulta os pedidos acompanhados de tempos em tempos,
+  // caso o WebSocket do Realtime caia ou não esteja habilitado na tabela.
+  async function verificarNovidadesPedidos() {
+    const codigos = Object.keys(lerPedidosAcompanhados());
+    if (codigos.length === 0) return;
+
+    const { data, error } = await supabaseClient.from("pedidos").select("code,status,endereco,total,created_at").in("code", codigos);
+
+    if (error || !data) return;
+    data.forEach(aplicarNovoStatus);
+  }
+
+  // Mostra o status de um pedido no painel de rastreio e marca como "visto".
+  function exibirStatusPedido(pedido, opcoes = {}) {
+    const mapa = lerPedidosAcompanhados();
+    const statusAnteriorVisto = opcoes.statusAnterior !== undefined ? opcoes.statusAnterior : mapa[pedido.code]?.statusVisto;
+
+    pedidoExibidoAtualmente = pedido.code;
+    rastreio.limparCorpo();
+
+    const pagamentoAcabouDeSerConfirmado = statusAnteriorVisto === "PENDENTE" && pedido.status === "PRONTO";
+
+    if (pagamentoAcabouDeSerConfirmado) {
+      rastreio.adicionarMensagemVisual(
+        "bot",
+        `✅ Pagamento aprovado!\n\nJá estamos cientes do seu pedido ${pedido.code} e vamos te atualizar por aqui assim que ele avançar. 🐊`
+      );
+    } else {
+      const statusTexto = STATUS_TEXTO[pedido.status] || pedido.status;
+      rastreio.adicionarMensagemVisual(
+        "bot",
+        `Pedido ${pedido.code}\nStatus: ${statusTexto}\nTotal: R$ ${Number(pedido.total || 0).toFixed(2).replace(".", ",")}`
+      );
+    }
+
+    rastreio.adicionarBlocoOpcoes([["📦 Rastrear outro pedido", abrirFluxoRastreio]]);
+    rastreio.adicionarBotaoAvaliacao();
+
+    registrarPedidoParaAcompanhar(pedido.code, pedido.status);
+    const mapaAtualizado = lerPedidosAcompanhados();
+    mapaAtualizado[pedido.code].statusVisto = pedido.status;
+    mapaAtualizado[pedido.code].statusAtual = pedido.status;
+    salvarPedidosAcompanhados(mapaAtualizado);
+    atualizarBadgeContagem();
+  }
+
+  // ============================================================
   // PAINEL DE RASTREIO (100% separado da Ajuda)
   // ============================================================
 
@@ -595,21 +757,7 @@
       return;
     }
 
-    const pedido = data[0];
-    const statusTexto = {
-      PENDENTE: "🟡 Aguardando pagamento",
-      PRONTO: "🟢 Em preparação na loja",
-      ENTREGA: "🚚 Saiu para entrega",
-      FINALIZADO: "✅ Finalizado",
-    }[pedido.status] || pedido.status;
-
-    rastreio.adicionarMensagemVisual(
-      "bot",
-      `Pedido ${pedido.code}\nStatus: ${statusTexto}\nTotal: R$ ${Number(pedido.total || 0).toFixed(2).replace(".", ",")}`
-    );
-
-    rastreio.adicionarBlocoOpcoes([["📦 Rastrear outro pedido", abrirFluxoRastreio]]);
-    rastreio.adicionarBotaoAvaliacao();
+    exibirStatusPedido(data[0]);
   }
 
   async function tratarEnvioRastreio() {
@@ -687,6 +835,11 @@
     params.delete("pedido_recente");
     const novaUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : "");
     window.history.replaceState({}, "", novaUrl);
+
+    // Passa a acompanhar esse pedido a partir de agora — status "visto" é PENDENTE,
+    // então quando o pagamento for confirmado (PRONTO) o badge acende e a mensagem
+    // especial de "pagamento aprovado" aparece na próxima vez que o cliente abrir o rastreio.
+    registrarPedidoParaAcompanhar(pedidoRecente, "PENDENTE");
 
     setTimeout(() => {
       animarCaixaAteChat();
@@ -786,5 +939,12 @@
     injetarEstilos();
     montarWidgets();
     verificarRetornoDePedido();
+
+    // Re-inscreve Realtime pros pedidos que o cliente já vinha acompanhando
+    // (de visitas anteriores) e confere se algo mudou enquanto ele estava fora.
+    Object.keys(lerPedidosAcompanhados()).forEach((code) => inscreverRealtimePedido(code));
+    verificarNovidadesPedidos();
+    atualizarBadgeContagem();
+    setInterval(verificarNovidadesPedidos, VERIFICACAO_PERIODICA_MS);
   });
 })();
