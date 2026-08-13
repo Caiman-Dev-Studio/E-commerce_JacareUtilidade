@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/expirar-pendentes",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
