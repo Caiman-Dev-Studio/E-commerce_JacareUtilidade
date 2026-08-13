@@ -484,6 +484,17 @@ const supabaseClient = window.supabase.createClient(
 
 let totalPedidosAnterior = 0
 
+// Pedido PENDENTE (aguardando pagamento) mais antigo que isso é considerado
+// abandonado e some do painel automaticamente. Ajuste esse número se quiser.
+const LIMITE_HORAS_PENDENTE = 3
+
+function pedidoPendenteExpirado(p){
+  if(p.status !== "PENDENTE") return false
+  if(!p.created_at) return false
+  const horasDesdeCriacao = (Date.now() - new Date(p.created_at).getTime()) / 36e5
+  return horasDesdeCriacao > LIMITE_HORAS_PENDENTE
+}
+
 function formatarMoeda(valor){
   return Number(valor || 0).toFixed(2).replace('.', ',')
 }
@@ -585,6 +596,8 @@ async function carregarPedidos(){
   let counts = { pendente:0, pronto:0, entrega:0, finalizado:0 }
 
   data.forEach(p => {
+    if(pedidoPendenteExpirado(p)) return // pendente antigo (abandonado) some do painel
+
     const st = (p.status || "").toLowerCase()
     if(!counts.hasOwnProperty(st)) return
     counts[st]++
